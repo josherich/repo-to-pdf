@@ -34,9 +34,10 @@ let opts = {
 }
 
 function getFileName(fpath) {
-  let fullPath = fpath.split('/').filter(f => f.length > 0)
-  return fileName = fullPath[fullPath.length-1]
+  let base = path.basename(fpath)
+  return base[0] === '.' ? 'untitled' : base
 }
+
 
 class RepoBook {
   constructor(props) {
@@ -66,7 +67,8 @@ class RepoBook {
     return files
     .filter(f => {
       let fileName = getFileName(f)
-      return fileName[0] != '.'
+      let ext = path.extname(fileName).slice(1)
+      return fileName[0] != '.' && (ext in this.langs)
     })
     .map(f => {
       return `[${f}](#${f})`
@@ -74,8 +76,8 @@ class RepoBook {
     .join('\n')
   }
 
-  render(path) {
-    let files = this.readDir(path)
+  render(dir) {
+    let files = this.readDir(dir)
     let index = this.renderIndex(files)
     let contents = [index]
 
@@ -85,7 +87,8 @@ class RepoBook {
         continue
       }
 
-      let ext = fileName.split('.')
+      let ext = path.extname(fileName).slice(1)
+
       if (ext.length == 0) {
         continue
       }
@@ -94,20 +97,19 @@ class RepoBook {
         continue
       }
 
-      let fileExt = ext[ext.length-1]
-      let lang = this.langs[fileExt]
+      let lang = this.langs[ext]
       if (lang) {
         let data = fs.readFileSync(files[i])
-        if (fileExt !== 'md') {
+        if (ext === 'md') {
+          data = `#### ${files[i]}`
+            + "\n"
+              + data
+            + "\n"
+        } else {
           data = `#### ${files[i]}`
             + "\n``` " + lang  + "\n"
               + data
             + "\n```\n"
-        } else {
-          data = `#### ${files[i]}`
-            + "\n"
-              + data
-            + "\n"
         }
         contents.push(data)
       }
