@@ -1,0 +1,30 @@
+{
+  "name": "repo-to-pdf",
+  "version": "0.0.1",
+  "description": "make pdf from a repo of source code",
+  "main": "src/index.js",
+  "bin": {
+    "repo-to-pdf": "src/bin/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/josherich/repo-to-pdf.git"
+  },
+  "keywords": [
+    "pdf",
+    "github",
+    "repository"
+  ],
+  "author": "josherich",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/josherich/repo-to-pdf/issues"
+  },
+  "homepage": "https://github.com/josherich/repo-to-pdf#readme",
+  "dependencies": {
+    "commander": "^4.0.0",
+    "highlight.js": "^9.16.2",
+    "relaxedjs": "^0.2.2",
+    "remarkable": "^2.0.0"
+  }
+}
