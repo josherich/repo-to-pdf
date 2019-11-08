@@ -30,7 +30,7 @@ outputFile = path.resolve(process.cwd(), outputFile || getFileName(inputFolder) 
 
 let opts = {
   cssPath: "./github-min.css",
-  highlightCssPath: "node_modules/highlight.js/styles/vs.css"
+  highlightCssPath: require.resolve('highlight.js') + "/../../styles/vs.css"
 }
 
 function getFileName(fpath) {
@@ -57,7 +57,7 @@ class RepoBook {
     const files = fs.readdirSync(dir).map(f => path.join(dir, f))
     allFiles.push(...files)
     files.forEach(f => {
-      fs.statSync(f).isDirectory() && this.blackList[f] == -1 && this.readDir(f, allFiles)
+      fs.statSync(f).isDirectory() && path.basename(f)[0] != '.' && this.blackList.indexOf(f) == -1 && this.readDir(f, allFiles)
     })
     return allFiles
   }
@@ -148,12 +148,12 @@ let html = fs.readFileSync(html5bpPath + '/index.html', 'utf-8')
   .replace(/\{\{baseUrl\}\}/g, protocol + html5bpPath)
   .replace('{{content}}', mdHtml)
   .replace('{{cssPath}}', protocol + path.resolve(__dirname, '../../', opts.cssPath))
-  .replace('{{highlightPath}}', protocol + path.resolve(__dirname, '../../', opts.highlightCssPath))
+  .replace('{{highlightPath}}', protocol + opts.highlightCssPath)
 
 fs.writeFileSync(outputFile, html)
 
 let htmlFile = path.resolve(process.cwd(), outputFile)
-let pdf = spawn('node', [path.resolve(__dirname, '../../node_modules/relaxedjs/src/index.js'), htmlFile, '--build-once'])
+let pdf = spawn('node', [path.resolve(__dirname, require.resolve('relaxedjs')), htmlFile, '--build-once'])
 
 pdf.on('close', function (code) {
   console.log(`${outputFileName} is created.`);

@@ -1,6 +1,6 @@
 {
   "name": "repo-to-pdf",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "make pdf from a repo of source code",
   "main": "src/index.js",
   "bin": {
