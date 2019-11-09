@@ -54,11 +54,13 @@ class RepoBook {
     this.blackList = ['node_modules']
   }
 
-  readDir(dir, allFiles = []) {
-    const files = fs.readdirSync(dir).map(f => path.join(dir, f))
+  readDir(dir, allFiles = [], level = 0) {
+    let files = fs.readdirSync(dir).map(f => path.join(dir, f))
+    files = files.map(f => [f, level])
     allFiles.push(...files)
-    files.forEach(f => {
-      fs.statSync(f).isDirectory() && path.basename(f)[0] != '.' && this.blackList.indexOf(f) == -1 && this.readDir(f, allFiles)
+    files.forEach(pair => {
+      let f = pair[0]
+      fs.statSync(f).isDirectory() && path.basename(f)[0] != '.' && this.blackList.indexOf(f) == -1 && this.readDir(f, allFiles, level+1)
     })
     return allFiles
   }
@@ -66,12 +68,13 @@ class RepoBook {
   renderIndex(files) {
     return files
     .filter(f => {
-      let fileName = getFileName(f)
+      let fileName = getFileName(f[0])
       let ext = path.extname(fileName).slice(1)
       return fileName[0] != '.' && (ext in this.langs)
     })
     .map(f => {
-      return `[${f}](#${f})`
+      let left_pad = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1])
+      return `${left_pad}[${f[0]}](#${f[0]})`
     })
     .join('\n')
   }
@@ -82,8 +85,10 @@ class RepoBook {
     let contents = [index]
 
     for (let i = 0; i < files.length; i++) {
-      let fileName = getFileName(files[i])
-      if (fs.statSync(files[i]).isDirectory()) {
+      let file = files[i][0]
+
+      let fileName = getFileName(file)
+      if (fs.statSync(file).isDirectory()) {
         continue
       }
 
@@ -99,14 +104,14 @@ class RepoBook {
 
       let lang = this.langs[ext]
       if (lang) {
-        let data = fs.readFileSync(files[i])
+        let data = fs.readFileSync(file)
         if (ext === 'md') {
-          data = `#### ${files[i]}`
+          data = `#### ${file}`
             + "\n"
               + data
             + "\n"
         } else {
-          data = `#### ${files[i]}`
+          data = `#### ${file}`
             + "\n``` " + lang  + "\n"
               + data
             + "\n```\n"
