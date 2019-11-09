@@ -26,7 +26,7 @@ program.parse(process.argv)
 
 outputFileName = outputFile || inputFolder + '.pdf'
 
-outputFile = path.resolve(process.cwd(), outputFile || getFileName(inputFolder) + '.html')
+outputFile = path.resolve(process.cwd(), outputFile.replace('.pdf', '.html') || getFileName(inputFolder) + '.html')
 
 device = program.device || 'desktop'
 
