@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-let inputFolder, outputFile, outputFileName
+let inputFolder, outputFile, outputFileName, device
 
 const path = require('path')
 const fs = require('fs')
@@ -16,7 +16,7 @@ program
   .version('repo-to-pdf ' + version)
   .usage('<input> [output] [options]')
   .arguments('<input> [output] [options]')
-  .option('--width, -w', 'width in pixels')
+  .option('-d, --device [platform]', 'device [desktop(default)|mobile|tablet]')
   .action(function (input, output) {
     inputFolder = input
     outputFile = output
@@ -28,9 +28,30 @@ outputFileName = outputFile || inputFolder + '.pdf'
 
 outputFile = path.resolve(process.cwd(), outputFile || getFileName(inputFolder) + '.html')
 
+device = program.device || 'desktop'
+
 let opts = {
-  cssPath: "./github-min.css",
-  highlightCssPath: require.resolve('highlight.js') + "/../../styles/vs.css"
+  cssPath: {
+    desktop: "./github-min.css",
+    tablet: "./github-min-tablet.css",
+    mobile: "./github-min-mobile.css"
+  },
+  highlightCssPath: require.resolve('highlight.js') + "/../../styles/vs.css",
+  relaxedCSS: {
+    desktop: "",
+    tablet: `@page {
+              size: 8in 14in;
+              -relaxed-page-width: 8in;
+              -relaxed-page-height: 14in;
+              margin: 0;
+            }`,
+    mobile: `@page {
+              size: 6in 10in;
+              -relaxed-page-width: 6in;
+              -relaxed-page-height: 10in;
+              margin: 0;
+            }`
+  }
 }
 
 function getFileName(fpath) {
@@ -74,7 +95,8 @@ class RepoBook {
     })
     .map(f => {
       let left_pad = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1])
-      return `${left_pad}[${f[0]}](#${f[0]})`
+      let h_level = '###' + '#'.repeat(f[1])
+      return `${h_level} ${left_pad}[${f[0]}](#${f[0]})`
     })
     .join('\n')
   }
@@ -82,7 +104,11 @@ class RepoBook {
   render(dir) {
     let files = this.readDir(dir)
     let index = this.renderIndex(files)
-    let contents = [index]
+    let contents = []
+
+    contents.push("# " + dir + "\n\n\n\n")
+    contents.push("## Contents")
+    contents.push(index)
 
     for (let i = 0; i < files.length; i++) {
       let file = files[i][0]
@@ -106,12 +132,12 @@ class RepoBook {
       if (lang) {
         let data = fs.readFileSync(file)
         if (ext === 'md') {
-          data = `#### ${file}`
+          data = `#### ${file} \n[to top](#Contents)`
             + "\n"
               + data
             + "\n"
         } else {
-          data = `#### ${file}`
+          data = `#### ${file} \n[to top](#Contents)`
             + "\n``` " + lang  + "\n"
               + data
             + "\n```\n"
@@ -154,8 +180,9 @@ let protocol = isWin ? 'file:///' : 'file://'
 let html = fs.readFileSync(html5bpPath + '/index.html', 'utf-8')
   .replace(/\{\{baseUrl\}\}/g, protocol + html5bpPath)
   .replace('{{content}}', mdHtml)
-  .replace('{{cssPath}}', protocol + path.resolve(__dirname, '../../', opts.cssPath))
+  .replace('{{cssPath}}', protocol + path.resolve(__dirname, '../../', opts.cssPath[device]))
   .replace('{{highlightPath}}', protocol + opts.highlightCssPath)
+  .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
 
 fs.writeFileSync(outputFile, html)
 

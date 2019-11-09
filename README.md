@@ -15,3 +15,10 @@ npm install repo-to-pdf
 ```bash
 npx repo-to-pdf [src/folder]
 ```
+
+For tablet, mobile
+
+```bash
+npx repo-to-pdf [src/folder] --device tablet
+npx repo-to-pdf [src/folder] --device mobile
+```
