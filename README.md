@@ -1,6 +1,8 @@
 # repo-to-pdf
 
-make pdf from source code
+Make pdf from source code
+
+Here is a [sample](https://github.com/josherich/repo-to-pdf/blob/master/sample.pdf)
 
 ## Install
 
@@ -9,6 +11,7 @@ npm install repo-to-pdf
 ```
 
 ## Usage
+
 ```bash
 npx repo-to-pdf [src/folder]
 ```
