@@ -17,6 +17,7 @@ program
   .usage('<input> [output] [options]')
   .arguments('<input> [output] [options]')
   .option('-d, --device [platform]', 'device [desktop(default)|mobile|tablet]')
+  .option('-t, --title [name]', 'title')
   .action(function (input, output) {
     inputFolder = input
     outputFile = output
@@ -26,9 +27,10 @@ program.parse(process.argv)
 
 outputFileName = outputFile || inputFolder + '.pdf'
 
-outputFile = path.resolve(process.cwd(), outputFile.replace('.pdf', '.html') || getFileName(inputFolder) + '.html')
+outputFile = path.resolve(process.cwd(), outputFileName.replace('.pdf', '.html') || getFileName(inputFolder) + '.html')
 
 device = program.device || 'desktop'
+title = program.title || inputFolder
 
 let opts = {
   cssPath: {
@@ -59,20 +61,34 @@ function getFileName(fpath) {
   return base[0] === '.' ? 'untitled' : base
 }
 
+function getCleanFilename(filename) {
+  return filename.replace(inputFolder, '')
+}
 
 class RepoBook {
   constructor(props) {
-    this.langs = {
-      'js': 'javascript',
-      'py': 'python',
-      'go': 'go',
-      'ruby': 'ruby',
-      'cc': 'cpp',
-      'c': 'c',
-      'rs': 'rust',
-      'md': 'md'
-    };
+    this.aliases = {}
     this.blackList = ['node_modules']
+    this.registerLanguages()
+  }
+
+  registerLanguage(name, language) {
+    let lang = language(hljs)
+    if (lang && lang.aliases) {
+      name = name.split('.')[0]
+      this.aliases[name] = name
+      lang.aliases.map(alias => {
+        this.aliases[alias] = name.split('.')[0]
+      })
+    }
+  }
+
+  registerLanguages() {
+    let listPath = path.join(path.dirname(require.resolve('highlight.js')), "languages")
+    fs.readdirSync(listPath)
+      .map(f => {
+        this.registerLanguage(f, require(path.join(listPath, f)))
+      })
   }
 
   readDir(dir, allFiles = [], level = 0) {
@@ -91,22 +107,23 @@ class RepoBook {
     .filter(f => {
       let fileName = getFileName(f[0])
       let ext = path.extname(fileName).slice(1)
-      return fileName[0] != '.' && (ext in this.langs)
+      return fileName[0] != '.' && (ext in this.aliases)
     })
     .map(f => {
+      let indexName = getCleanFilename(f[0])
       let left_pad = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1])
       let h_level = '###' + '#'.repeat(f[1])
-      return `${h_level} ${left_pad}[${f[0]}](#${f[0]})`
+      return `${h_level} ${left_pad}[${indexName}](#${indexName})`
     })
     .join('\n')
   }
 
-  render(dir) {
+  render(dir, title) {
     let files = this.readDir(dir)
     let index = this.renderIndex(files)
     let contents = []
 
-    contents.push("# " + dir + "\n\n\n\n")
+    contents.push("# " + title || dir + "\n\n\n\n")
     contents.push("## Contents")
     contents.push(index)
 
@@ -128,16 +145,16 @@ class RepoBook {
         continue
       }
 
-      let lang = this.langs[ext]
+      let lang = this.aliases[ext]
       if (lang) {
         let data = fs.readFileSync(file)
         if (ext === 'md') {
-          data = `#### ${file} \n[to top](#Contents)`
+          data = `#### ${getCleanFilename(file)} \n[to top](#Contents)`
             + "\n"
               + data
             + "\n"
         } else {
-          data = `#### ${file} \n[to top](#Contents)`
+          data = `#### ${getCleanFilename(file)} \n[to top](#Contents)`
             + "\n``` " + lang  + "\n"
               + data
             + "\n```\n"
@@ -150,7 +167,7 @@ class RepoBook {
 }
 
 let repoBook = new RepoBook()
-let mdString = repoBook.render(inputFolder)
+let mdString = repoBook.render(inputFolder, title)
 
 let mdParser = new Remarkable({
   breaks: true,
