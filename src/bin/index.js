@@ -119,14 +119,16 @@ class RepoBook {
 
   readDir(dir, allFiles = [], level = 0) {
     let files = fs.readdirSync(dir).map(f => path.join(dir, f))
-    files = files.map(f => [f, level])
+    files = files
+      .filter(f => (fs.lstatSync(f).size / 1000) < 2000) // smaller than 2m
+      .map(f => [f, level])
+
     allFiles.push(...files)
     files.map(pair => {
       let f = pair[0]
       fs.lstatSync(f).isDirectory()
         && path.basename(f)[0] != '.'
         && this.blackList.indexOf(f) == -1
-        && fs.lstatSync(f).size / 1000 < 2000 // smaller than 2m
         && this.readDir(f, allFiles, level+1)
     })
     return allFiles
