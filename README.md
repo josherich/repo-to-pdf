@@ -12,8 +12,24 @@ npm install repo-to-pdf
 
 ## Usage
 
+### Basic
 ```bash
 npx repo-to-pdf [src/folder]
+```
+
+### All options
+```bash
+-d, --device [platform]
+device [desktop(default)|mobile|tablet]
+
+-t, --title [name]
+pdf filename
+
+-w, --whitelist [wlist]
+file format white list, split by ","
+
+-s, --size [size]
+pdf file size limit, in MB
 ```
 
 For tablet, mobile
