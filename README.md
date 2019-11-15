@@ -1,5 +1,8 @@
 # repo-to-pdf
 
+[![npm](https://img.shields.io/npm/v/repo-to-pdf.svg?label=&logo=npm)](https://www.npmjs.com/package/repo-to-pdf)
+[![npm](https://img.shields.io/npm/dm/repo-to-pdf.svg?label=dl)](https://www.npmjs.com/package/repo-to-pdf)
+
 Make pdf from source code
 
 Here is a [sample](https://github.com/josherich/repo-to-pdf/blob/master/sample.pdf)
