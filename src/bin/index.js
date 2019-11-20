@@ -20,6 +20,7 @@ program
   .arguments('<input> [output] [options]')
   .option('-d, --device [platform]', 'device [desktop(default)|mobile|tablet]')
   .option('-t, --title [name]', 'title')
+  .option('-w, --whitelist [wlist]', 'file format white list, split by ,')
   .option('-s, --size [size]', 'pdf file size limit, in Mb')
   .action(function (input, output) {
     inputFolder = input
@@ -31,6 +32,7 @@ program.parse(process.argv)
 device = program.device || 'desktop'
 title = program.title || inputFolder
 pdf_size = program.size ? getSizeInByte(program.size) : PDF_SIZE
+white_list = program.whitelist
 
 let opts = {
   cssPath: {
@@ -70,7 +72,7 @@ function getCleanFilename(filename) {
 }
 
 class RepoBook {
-  constructor(dir, title, pdf_size) {
+  constructor(dir, title, pdf_size, white_list) {
     this.title = title
     this.pdf_size = pdf_size
     this.blackList = ['node_modules']
@@ -81,6 +83,8 @@ class RepoBook {
     this.partOffset = 0
 
     this.done = false
+
+    this.white_list = white_list ? white_list.split(',') : null
 
     this.files = this.readDir(dir)
     this.registerLanguages()
@@ -104,7 +108,12 @@ class RepoBook {
       name = name.split('.')[0]
       this.aliases[name] = name
       lang.aliases.map(alias => {
-        this.aliases[alias] = name.split('.')[0]
+        if (this.white_list) {
+          if (alias in this.white_list)
+            this.aliases[alias] = name.split('.')[0]
+        } else {
+          this.aliases[alias] = name.split('.')[0]
+        }
       })
     }
   }
@@ -126,9 +135,12 @@ class RepoBook {
     allFiles.push(...files)
     files.map(pair => {
       let f = pair[0]
+      let blackListHit = this.blackList.filter(e => {
+        return !!f.match(e)
+      }).length > 0
       fs.lstatSync(f).isDirectory()
         && path.basename(f)[0] != '.'
-        && this.blackList.indexOf(f) == -1
+        && blackListHit == false
         && this.readDir(f, allFiles, level+1)
     })
     return allFiles
@@ -242,7 +254,7 @@ function sequenceRenderPDF(htmlFiles, i) {
 }
 
 function generatePDF(inputFolder, title) {
-  let repoBook = new RepoBook(inputFolder, title, pdf_size)
+  let repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
   let outputFiles = []
 
   outputFileName = outputFile || inputFolder + '.pdf'
