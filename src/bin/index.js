@@ -1,27 +1,31 @@
 #!/usr/bin/env node
 
-let inputFolder, outputFile, outputFileName, device, title, pdf_size
+let inputFolder, outputFile, outputFileName, device, title, pdf_size, white_list, renderer, format
 
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
-const { spawn } = require('child_process')
+const { spawnSync } = require('child_process')
 const version = require('../../package.json').version
 
 const program = require('commander')
 const { Remarkable } = require('remarkable')
+const toc = require('markdown-toc')
+
 const hljs = require('highlight.js')
 
-const PDF_SIZE = getSizeInByte(10) // 10 Mb
+const PDF_SIZE = getSizeInByte(5) // 10 Mb
 
 program
   .version('repo-to-pdf ' + version)
   .usage('<input> [output] [options]')
   .arguments('<input> [output] [options]')
-  .option('-d, --device [platform]', 'device [desktop(default)|mobile|tablet]')
+  .option('-d, --device <platform>', 'device [desktop(default)|mobile|tablet]', 'desktop')
   .option('-t, --title [name]', 'title')
   .option('-w, --whitelist [wlist]', 'file format white list, split by ,')
   .option('-s, --size [size]', 'pdf file size limit, in Mb')
+  .option('-r, --renderer <engine>', 'use chrome or calibre to render pdf', 'node')
+  .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
   .action(function (input, output) {
     inputFolder = input
     outputFile = output
@@ -29,10 +33,12 @@ program
 
 program.parse(process.argv)
 
-device = program.device || 'desktop'
-title = program.title || inputFolder
-pdf_size = program.size ? getSizeInByte(program.size) : PDF_SIZE
-white_list = program.whitelist
+device      = program.device
+title       = program.title || inputFolder
+pdf_size    = program.size ? getSizeInByte(program.size) : PDF_SIZE
+white_list  = program.whitelist
+renderer    = program.renderer
+format      = program.format
 
 let opts = {
   cssPath: {
@@ -71,11 +77,15 @@ function getCleanFilename(filename) {
   return filename.replace(inputFolder, '')
 }
 
+function getFileNameExt(fileName, ext = 'pdf') {
+  return fileName.replace(/\.[0-9a-zA-Z]+$/, `.${ext}`)
+}
+
 class RepoBook {
   constructor(dir, title, pdf_size, white_list) {
     this.title = title
     this.pdf_size = pdf_size
-    this.blackList = ['node_modules']
+    this.blackList = ['node_modules', 'vendor']
 
     this.aliases = {}
     this.byteOffset = 0
@@ -211,7 +221,12 @@ class RepoBook {
           toc += index
           contents.unshift(title, toc)
 
-          this.fileOffset = i
+          if (i == this.fileOffset) {
+            // when single file exceeds size limit
+            this.fileOffset++
+          } else {
+            this.fileOffset = i
+          }
           this.byteOffset = 0
 
           return contents.join('\n')
@@ -233,6 +248,7 @@ class RepoBook {
     let index = this.renderIndex(files.slice(this.fileOffset, i+1))
     toc += index
     contents.unshift(title, toc)
+    // contents.unshift(title)
 
     this.fileOffset = files.length // should return null next round
     this.done = true
@@ -241,16 +257,49 @@ class RepoBook {
   }
 }
 
-function sequenceRenderPDF(htmlFiles, i) {
+function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
   if (i >= htmlFiles.length) return
-
   let htmlFile = path.resolve(process.cwd(), htmlFiles[i])
-  let pdf = spawn('node', [path.resolve(__dirname, require.resolve('relaxedjs')), htmlFile, '--build-once', '--no-sandbox'])
+  let pdfFile = getFileNameExt(htmlFile, 'pdf')
 
-  pdf.on('close', function (code) {
-    console.log(`${htmlFiles[i]} is created.`)
-    sequenceRenderPDF(htmlFiles, i+1)
-  })
+  let args = {
+    'node': ['node',
+      [
+        path.resolve(__dirname, require.resolve('relaxedjs')),
+        htmlFile,
+        '--build-once',
+        '--no-sandbox'
+      ]
+    ],
+    // 'calibre': ['/usr/bin/ebook-convert',
+    'calibre': ['/Applications/calibre.app/Contents/MacOS/ebook-convert',
+      [
+        htmlFile,
+        pdfFile,
+        '--pdf-add-toc',
+        '--paper-size', 'a4',
+        '--pdf-default-font-size', '12',
+        '--pdf-mono-font-size', '12',
+        '--pdf-page-margin-left', '2',
+        '--pdf-page-margin-right', '2',
+        '--pdf-page-margin-top', '2',
+        '--pdf-page-margin-bottom', '2',
+        '--page-breaks-before', "/"
+      ]
+    ]
+  }
+  let cmd = args[renderer], startTS = Date.now()
+  let pdf = spawnSync(cmd[0], cmd[1])
+
+  let sec = (Date.now() - startTS) / 1000
+  if (fs.existsSync(pdfFile)) {
+    console.log(`${htmlFiles[i]} is created (${sec} seconds).`)
+    sequenceRenderPDF(htmlFiles, i+1, renderer)
+  } else {
+    // retry
+    console.log(`${htmlFiles[i]} is retried.`)
+    sequenceRenderPDF(htmlFiles, i, renderer)
+  }
 }
 
 function generatePDF(inputFolder, title) {
@@ -258,7 +307,7 @@ function generatePDF(inputFolder, title) {
   let outputFiles = []
 
   outputFileName = outputFile || inputFolder + '.pdf'
-  outputFile = path.resolve(process.cwd(), outputFileName.replace('.pdf', '.html') || getFileName(inputFolder) + '.html')
+  outputFile = path.resolve(process.cwd(), getFileNameExt(outputFileName, 'html') || getFileName(inputFolder) + '.html')
 
   while(repoBook.hasNextPart()) {
     let mdString = repoBook.render()
@@ -277,10 +326,12 @@ function generatePDF(inputFolder, title) {
 
         return ''
       }
-    }).use(function(remarkable) {
+    })
+
+    .use(function(remarkable) {
       remarkable.renderer.rules.heading_open = function(tokens, idx) {
         return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>';
-      };
+      }
     })
 
     let mdHtml = `<article class="markdown-body">` + mdParser.render(mdString) + "</article>"
@@ -301,7 +352,7 @@ function generatePDF(inputFolder, title) {
     fs.writeFileSync(_outputFile, html)
     outputFiles.push(_outputFile)
   }
-  sequenceRenderPDF(outputFiles, 0)
+  sequenceRenderPDF(outputFiles, 0, renderer)
 }
 
 generatePDF(inputFolder, title)

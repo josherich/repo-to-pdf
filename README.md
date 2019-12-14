@@ -41,3 +41,35 @@ For tablet, mobile
 npx repo-to-pdf [src/folder] --device tablet
 npx repo-to-pdf [src/folder] --device mobile
 ```
+
+### Generate using Calibra
+
+#### mobi
+```bash
+ebook-convert html_out/index.html my-project.mobi \
+    --output-profile kindle_dx --no-inline-toc \
+    --title "Your Book Title" --publisher 'Your Name' \
+    --language en --authors 'Your Author Name'
+```
+
+#### epub
+```bash
+ebook-convert demo.html demo.epub \
+    --output-profile ipad3 \
+    --no-default-epub-cover \
+    --title "Awesome Demo" --publisher 'Your Name' \
+    --language en --authors 'Your Author Name'
+```
+
+#### pdf
+```bash
+ebook-convert demo.html demo.pdf \
+  --pdf-page-numbers \
+  --pdf-add-toc \
+  --paper-size a4 \
+  --pdf-default-font-size 12 \
+  --pdf-mono-font-size 12 \
+  --pdf-page-margin-left 2 --pdf-page-margin-right 2 \
+  --pdf-page-margin-top 2 --pdf-page-margin-bottom 2 \
+  --page-breaks-before='/'
+```
