@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-let inputFolder, outputFile, outputFileName, device, title, pdf_size, white_list, renderer, format
+let inputFolder, outputFile, outputFileName, device, title, pdf_size, white_list, renderer, format, calibrePath
 let startTs
 
 const path = require('path')
@@ -11,7 +11,6 @@ const version = require('../../package.json').version
 
 const program = require('commander')
 const { Remarkable } = require('remarkable')
-const toc = require('markdown-toc')
 
 const hljs = require('highlight.js')
 
@@ -27,6 +26,7 @@ program
   .option('-s, --size [size]', 'pdf file size limit, in Mb')
   .option('-r, --renderer <engine>', 'use chrome or calibre to render pdf', 'node')
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
+  .option('-c, --calibre [path]', 'path to calibre')
   .action(function (input, output) {
     inputFolder = input
     outputFile = output
@@ -40,6 +40,29 @@ pdf_size    = program.size ? getSizeInByte(program.size) : PDF_SIZE
 white_list  = program.whitelist
 renderer    = program.renderer
 format      = program.format
+calibrePath = program.calibre
+
+if (format !== 'pdf' && renderer === 'node') {
+  console.log(`Try to create ${format}, use renderer calibre.`)
+  renderer = 'calibre'
+}
+
+// check calibre path
+calibrePaths = ['/Applications/calibre.app/Contents/MacOS/ebook-convert', '/usr/bin/ebook-convert']
+if (calibrePath) {
+  calibrePaths.unshift(calibrePath)
+}
+let i = 0
+for (; i < calibrePaths.length; i++) {
+  if (fs.existsSync(calibrePaths[i])) {
+    break
+  }
+}
+if (i === calibrePaths.length) {
+  console.log('Calibre ebook-convert not found, make sure you pass it by --calibre /path/to/ebook-convert.')
+  return
+}
+
 
 let opts = {
   cssPath: {
@@ -268,8 +291,23 @@ function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
     return
   }
   let htmlFile = path.resolve(process.cwd(), htmlFiles[i])
-  let pdfFile = getFileNameExt(htmlFile, 'pdf')
+  let formatFile = getFileNameExt(htmlFile, format)
 
+  let formatArgs = {
+    'pdf': [
+      '--pdf-add-toc',
+      '--paper-size', 'a4',
+      '--pdf-default-font-size', '12',
+      '--pdf-mono-font-size', '12',
+      '--pdf-page-margin-left', '2',
+      '--pdf-page-margin-right', '2',
+      '--pdf-page-margin-top', '2',
+      '--pdf-page-margin-bottom', '2',
+      '--page-breaks-before', "/"
+    ],
+    'mobi': ['--mobi-toc-at-start'],
+    'epub': ['--epub-inline-toc']
+  }
   let args = {
     'node': ['node',
       [
@@ -279,27 +317,24 @@ function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
         '--no-sandbox'
       ]
     ],
-    // 'calibre': ['/usr/bin/ebook-convert',
-    'calibre': ['/Applications/calibre.app/Contents/MacOS/ebook-convert',
+    'calibre': [process.platform === 'darwin'
+      ? '/Applications/calibre.app/Contents/MacOS/ebook-convert'
+      : '/usr/bin/ebook-convert',
       [
         htmlFile,
-        pdfFile,
-        '--pdf-add-toc',
-        '--paper-size', 'a4',
-        '--pdf-default-font-size', '12',
-        '--pdf-mono-font-size', '12',
-        '--pdf-page-margin-left', '2',
-        '--pdf-page-margin-right', '2',
-        '--pdf-page-margin-top', '2',
-        '--pdf-page-margin-bottom', '2',
-        '--page-breaks-before', "/"
-      ]
+        formatFile
+      ].concat(formatArgs[format])
     ]
   }
   let cmd = args[renderer], startTS = Date.now()
-  let pdf = spawnSync(cmd[0], cmd[1])
 
-  if (!fs.existsSync(pdfFile)) {
+  let res = spawnSync(cmd[0], cmd[1])
+  if (res.error) {
+    console.log(`Some error happened when creating ${formatFile}.`)
+    return
+  }
+
+  if (!fs.existsSync(formatFile)) {
     console.log(`${htmlFiles[i]} was not rendered.`)
   }
 
@@ -331,7 +366,6 @@ function generatePDF(inputFolder, title) {
         return ''
       }
     })
-
     .use(function(remarkable) {
       remarkable.renderer.rules.heading_open = function(tokens, idx) {
         return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>';
