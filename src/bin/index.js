@@ -114,7 +114,7 @@ class RepoBook {
       this.aliases[name] = name
       lang.aliases.map(alias => {
         if (this.white_list) {
-          if (alias in this.white_list)
+          if (this.white_list.indexOf(alias) > -1)
             this.aliases[alias] = name.split('.')[0]
         } else {
           this.aliases[alias] = name.split('.')[0]
