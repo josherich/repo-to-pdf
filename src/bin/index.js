@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 let inputFolder, outputFile, outputFileName, device, title, pdf_size, white_list, renderer, format
+let startTs
 
 const path = require('path')
 const fs = require('fs')
@@ -14,7 +15,7 @@ const toc = require('markdown-toc')
 
 const hljs = require('highlight.js')
 
-const PDF_SIZE = getSizeInByte(5) // 10 Mb
+const PDF_SIZE = getSizeInByte(10) // 10 Mb
 
 program
   .version('repo-to-pdf ' + version)
@@ -119,7 +120,7 @@ class RepoBook {
       this.aliases[name] = name
       lang.aliases.map(alias => {
         if (this.white_list) {
-          if (alias in this.white_list)
+          if (this.white_list.indexOf(alias) > -1)
             this.aliases[alias] = name.split('.')[0]
         } else {
           this.aliases[alias] = name.split('.')[0]
@@ -258,7 +259,14 @@ class RepoBook {
 }
 
 function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
-  if (i >= htmlFiles.length) return
+  if (i == 0) {
+    startTs = Date.now()
+  }
+  if (i >= htmlFiles.length) {
+    let ts = (Date.now() - startTs) / 1000
+    console.log(`${outputFileName} created in ${ts} seconds.`)
+    return
+  }
   let htmlFile = path.resolve(process.cwd(), htmlFiles[i])
   let pdfFile = getFileNameExt(htmlFile, 'pdf')
 
@@ -291,15 +299,11 @@ function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
   let cmd = args[renderer], startTS = Date.now()
   let pdf = spawnSync(cmd[0], cmd[1])
 
-  let sec = (Date.now() - startTS) / 1000
-  if (fs.existsSync(pdfFile)) {
-    console.log(`${htmlFiles[i]} is created (${sec} seconds).`)
-    sequenceRenderPDF(htmlFiles, i+1, renderer)
-  } else {
-    // retry
-    console.log(`${htmlFiles[i]} is retried.`)
-    sequenceRenderPDF(htmlFiles, i, renderer)
+  if (!fs.existsSync(pdfFile)) {
+    console.log(`${htmlFiles[i]} was not rendered.`)
   }
+
+  sequenceRenderPDF(htmlFiles, i+1)
 }
 
 function generatePDF(inputFolder, title) {
