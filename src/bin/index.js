@@ -55,6 +55,7 @@ if (calibrePath) {
 let i = 0
 for (; i < calibrePaths.length; i++) {
   if (fs.existsSync(calibrePaths[i])) {
+    calibrePath = calibrePaths[i]
     break
   }
 }
@@ -305,8 +306,8 @@ function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
       '--pdf-page-margin-bottom', '2',
       '--page-breaks-before', "/"
     ],
-    'mobi': ['--mobi-toc-at-start'],
-    'epub': ['--epub-inline-toc']
+    'mobi': ['--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
+    'epub': ['--epub-inline-toc', '--output-profile', 'ipad3']
   }
   let args = {
     'node': ['node',
@@ -317,9 +318,7 @@ function sequenceRenderPDF(htmlFiles, i, renderer = 'node') {
         '--no-sandbox'
       ]
     ],
-    'calibre': [process.platform === 'darwin'
-      ? '/Applications/calibre.app/Contents/MacOS/ebook-convert'
-      : '/usr/bin/ebook-convert',
+    'calibre': [calibrePath,
       [
         htmlFile,
         formatFile

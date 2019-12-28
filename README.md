@@ -37,43 +37,22 @@ file format white list, split by ","
 -s, --size [size]
 pdf file size limit, in MB, default 10 MB
 # npx repo-to-pdf ../repo -s 10
+
+-r, --renderer [node|calibre]
+use either node(relaxedjs) or calibre to render ebook, node outputs pdf, calibre outputs pdf, mobi, epub
+# npx repo-to-pdf ../repo -r calibre
+
+-f, --format [pdf|mobi|epub]
+output format, either pdf, mobi, epub. mobi and epub are generated using calibre ebook-convert
+# npx repo-to-pdf ../repo -f mobi
+
+-c, --calibre [path]
+path to ebook-convert, for MacOS, try /Applications/calibre.app/Contents/MacOS/ebook-convert; for linux, try /usr/bin/ebook-convert
 ```
 
-For tablet, mobile
+##### For tablet, mobile
 
 ```bash
 npx repo-to-pdf [src/folder] --device tablet
 npx repo-to-pdf [src/folder] --device mobile
-```
-
-### Generate using Calibra
-
-#### mobi
-```bash
-ebook-convert html_out/index.html my-project.mobi \
-    --output-profile kindle_dx --no-inline-toc \
-    --title "Your Book Title" --publisher 'Your Name' \
-    --language en --authors 'Your Author Name'
-```
-
-#### epub
-```bash
-ebook-convert demo.html demo.epub \
-    --output-profile ipad3 \
-    --no-default-epub-cover \
-    --title "Awesome Demo" --publisher 'Your Name' \
-    --language en --authors 'Your Author Name'
-```
-
-#### pdf
-```bash
-ebook-convert demo.html demo.pdf \
-  --pdf-page-numbers \
-  --pdf-add-toc \
-  --paper-size a4 \
-  --pdf-default-font-size 12 \
-  --pdf-mono-font-size 12 \
-  --pdf-page-margin-left 2 --pdf-page-margin-right 2 \
-  --pdf-page-margin-top 2 --pdf-page-margin-bottom 2 \
-  --page-breaks-before='/'
 ```
