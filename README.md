@@ -24,15 +24,19 @@ npx repo-to-pdf [src/folder]
 ```bash
 -d, --device [platform]
 device [desktop(default)|mobile|tablet]
+# npx repo-to-pdf ../repo -d mobile
 
 -t, --title [name]
 pdf filename
+# npx repo-to-pdf ../repo -t MeinKampf.pdf
 
 -w, --whitelist [wlist]
 file format white list, split by ","
+# npx repo-to-pdf ../repo -w js,md
 
 -s, --size [size]
-pdf file size limit, in MB
+pdf file size limit, in MB, default 10 MB
+# npx repo-to-pdf ../repo -s 10
 ```
 
 For tablet, mobile
