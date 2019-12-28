@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 let inputFolder, outputFile, outputFileName, device, title, pdf_size
+let startTs
 
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
-const { spawn } = require('child_process')
+const { spawnSync } = require('child_process')
 const version = require('../../package.json').version
 
 const program = require('commander')
@@ -69,6 +70,10 @@ function getFileName(fpath) {
 
 function getCleanFilename(filename) {
   return filename.replace(inputFolder, '')
+}
+
+function getFileNameExt(fileName, ext = 'pdf') {
+  return fileName.replace(/\.[0-9a-zA-Z]+$/, `.${ext}`)
 }
 
 class RepoBook {
@@ -242,15 +247,25 @@ class RepoBook {
 }
 
 function sequenceRenderPDF(htmlFiles, i) {
-  if (i >= htmlFiles.length) return
+  if (i == 0) {
+    startTs = Date.now()
+  }
+  if (i >= htmlFiles.length) {
+    let ts = (Date.now() - startTs) / 1000
+    console.log(`${outputFileName} created in ${ts} seconds.`)
+    return
+  }
 
   let htmlFile = path.resolve(process.cwd(), htmlFiles[i])
-  let pdf = spawn('node', [path.resolve(__dirname, require.resolve('relaxedjs')), htmlFile, '--build-once', '--no-sandbox'])
+  let pdfFile = getFileNameExt(htmlFile, 'pdf')
 
-  pdf.on('close', function (code) {
-    console.log(`${htmlFiles[i]} is created.`)
-    sequenceRenderPDF(htmlFiles, i+1)
-  })
+  let pdf = spawnSync('node', [path.resolve(__dirname, require.resolve('relaxedjs')), htmlFile, '--build-once', '--no-sandbox'])
+
+  if (!fs.existsSync(pdfFile)) {
+    console.log(`${htmlFiles[i]} was not rendered.`)
+  }
+
+  sequenceRenderPDF(htmlFiles, i+1)
 }
 
 function generatePDF(inputFolder, title) {
