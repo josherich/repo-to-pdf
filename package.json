@@ -1,10 +1,13 @@
 {
   "name": "repo-to-pdf",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "make pdf from a repo of source code",
   "main": "src/index.js",
   "bin": {
     "repo-to-pdf": "src/bin/index.js"
+  },
+  "scripts": {
+    "test": "jest --forceExit"
   },
   "repository": {
     "type": "git",
@@ -26,5 +29,8 @@
     "highlight.js": "^9.16.2",
     "relaxedjs": "^0.2.2",
     "remarkable": "^2.0.0"
+  },
+  "devDependencies": {
+    "jest": "^24.9.0"
   }
 }
