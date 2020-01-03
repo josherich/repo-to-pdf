@@ -1,8 +1,21 @@
 #!/usr/bin/env node
 
-let inputFolder, outputFile, outputFileName, device, title, pdf_size, white_list, renderer, format, calibrePath
+let inputFolder,
+    outputFile,
+    outputFileName,
+    device,
+    title,
+    pdf_size,
+    white_list,
+    renderer,
+    format,
+    calibrePath,
+    baseUrl,
+    protocol
 
 const fs = require('fs')
+const path = require('path')
+const os = require('os')
 
 const program = require('commander')
 
@@ -11,6 +24,7 @@ const { generateEbook } = require('../html')
 
 const version = require('../../package.json').version
 const PDF_SIZE = getSizeInByte(10) // 10 Mb
+
 
 program
   .version('repo-to-pdf ' + version)
@@ -23,6 +37,7 @@ program
   .option('-r, --renderer <engine>', 'use chrome or calibre to render pdf', 'node')
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
   .option('-c, --calibre [path]', 'path to calibre')
+  .option('-b, --baseUrl [url]', 'base url of html folder. By default file:// is used.')
   .action(function (input, output) {
     inputFolder = input
     outputFile = output
@@ -37,6 +52,14 @@ white_list  = program.whitelist
 renderer    = program.renderer
 format      = program.format
 calibrePath = program.calibre
+if (program.baseUrl) {
+  protocol = ""
+  baseUrl = program.baseUrl
+}
+else {
+  protocol = os.name === 'windows' ? 'file:///' : 'file://'
+  baseUrl = path.resolve(__dirname, '../../html5bp')
+}
 
 if (format !== 'pdf' && renderer === 'node') {
   console.log(`Try to create ${format}, use renderer calibre.`)
@@ -67,5 +90,7 @@ generateEbook(inputFolder, outputFile, title, {
   pdf_size,
   white_list,
   format,
-  device
+  device,
+  baseUrl,
+  protocol
 })

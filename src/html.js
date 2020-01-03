@@ -1,6 +1,5 @@
 const path = require('path')
 const fs = require('fs')
-const os = require('os')
 
 const { Remarkable } = require('remarkable')
 const hljs = require('highlight.js')
@@ -11,11 +10,11 @@ const { getFileName, getFileNameExt } = require('./utils')
 
 let opts = {
   cssPath: {
-    desktop: "./github-min.css",
-    tablet: "./github-min-tablet.css",
-    mobile: "./github-min-mobile.css"
+    desktop: "./css/github-min.css",
+    tablet: "./css/github-min-tablet.css",
+    mobile: "./css/github-min-mobile.css"
   },
-  highlightCssPath: require.resolve('highlight.js') + "/../../styles/vs.css",
+  highlightCssPath: "./css/vs.css",
   relaxedCSS: {
     desktop: "",
     tablet: `@page {
@@ -34,7 +33,7 @@ let opts = {
 }
 
 function generateEbook(inputFolder, outputFile, title, options) {
-  let { renderer, calibrePath, pdf_size, white_list, format, device } = options
+  let { renderer, calibrePath, pdf_size, white_list, format, device, baseUrl, protocol } = options
   let repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
   let outputFiles = []
 
@@ -68,16 +67,17 @@ function generateEbook(inputFolder, outputFile, title, options) {
       }
     })
 
-    let mdHtml = `<article class="markdown-body">` + mdParser.render(mdString) + "</article>"
-    let html5bpPath = path.resolve(__dirname, '../', './html5bp')
-    let isWin = os.name === 'windows'
-    let protocol = isWin ? 'file:///' : 'file://'
-    let html = fs.readFileSync(html5bpPath + '/index.html', 'utf-8')
-      .replace(/\{\{baseUrl\}\}/g, protocol + html5bpPath)
-      .replace('{{content}}', mdHtml)
-      .replace('{{cssPath}}', protocol + path.resolve(__dirname, '../', opts.cssPath[device]))
-      .replace('{{highlightPath}}', protocol + opts.highlightCssPath)
-      .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
+    let mdHtml = `<article class="markdown-body">`
+                    + mdParser.render(mdString)
+               + `</article>`
+    let indexHtmlPath = path.join(__dirname, '../html5bp', 'index.html')
+    let html = fs.readFileSync(indexHtmlPath, 'utf-8')
+      // TODO: this sits before content replacing, to prevent replacing baseUrl in content text
+      .replace(/\{\{baseUrl\}\}/g,  protocol + baseUrl)
+      .replace('{{cssPath}}',       protocol + path.join(baseUrl, opts.cssPath[device]))
+      .replace('{{highlightPath}}', protocol + path.join(baseUrl, opts.highlightCssPath))
+      .replace('{{relaxedCSS}}',    protocol + path.join(baseUrl, opts.relaxedCSS[device]))
+      .replace('{{content}}',       mdHtml)
 
     let _outputFile = outputFile
     if (!repoBook.hasSingleFile()) {

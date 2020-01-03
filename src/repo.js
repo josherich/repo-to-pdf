@@ -68,16 +68,20 @@ class RepoBook {
       .filter(f => (fs.lstatSync(f).size / 1000) < 2000) // smaller than 2m
       .map(f => [f, level])
 
-    allFiles.push(...files)
+    level > 0 ? allFiles.push([dir, level, true]) : null // push folder name
+
     files.map(pair => {
       let f = pair[0]
       let blackListHit = this.blackList.filter(e => {
         return !!f.match(e)
       }).length > 0
-      fs.lstatSync(f).isDirectory()
-        && path.basename(f)[0] != '.'
+      if (!fs.lstatSync(f).isDirectory()) {
+        allFiles.push([f, level+1, false])
+      } else {
+        path.basename(f)[0] != '.' // ignore hidden folders
         && blackListHit == false
         && this.readDir(f, allFiles, level+1)
+      }
     })
     return allFiles
   }
@@ -87,13 +91,16 @@ class RepoBook {
     .filter(f => {
       let fileName = getFileName(f[0])
       let ext = path.extname(fileName).slice(1)
-      return fileName[0] != '.' && (ext in this.aliases)
+      let isFolder = fs.lstatSync(f[0]).isDirectory()
+      return fileName[0] != '.' && (ext in this.aliases || isFolder)
     })
     .map(f => {
-      let indexName = getCleanFilename(f[0], this.dir)
-      let left_pad = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1])
-      let h_level = '###' + '#'.repeat(Math.min(f[1], 3))
-      return `${h_level} ${left_pad}[${indexName}](#${indexName})`
+      let indexName   = getCleanFilename(f[0], this.dir, f[1]),
+          anchorName  = getCleanFilename(f[0], this.dir),
+          left_pad    = f[2] ? "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(f[1]) : "",
+          h_level     = "####",
+          list_style  = f[2] ? "" : "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(f[1]) + "|-"
+      return f[2] ? `${h_level} ${left_pad} ${list_style} /${indexName}` : `${h_level} ${left_pad}[${list_style} ${indexName}](#${anchorName})`
     })
     .join('\n')
   }

@@ -9,8 +9,14 @@ function getFileName(fpath) {
   return base[0] === '.' ? 'untitled' : base
 }
 
-function getCleanFilename(filename, folder) {
-  return filename.replace(folder, '')
+function getCleanFilename(filename, folder, depth = 0) {
+  filename = filename.replace(folder, '')
+  if (depth > 0) {
+    return filename.split('/').slice(depth).join('/')
+  }
+  else {
+    return filename
+  }
 }
 
 function getFileNameExt(fileName, ext = 'pdf') {
