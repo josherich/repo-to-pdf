@@ -1,17 +1,6 @@
 #!/usr/bin/env node
 
-let inputFolder,
-    outputFile,
-    outputFileName,
-    device,
-    title,
-    pdf_size,
-    white_list,
-    renderer,
-    format,
-    calibrePath,
-    baseUrl,
-    protocol
+let inputFolder, outputFile, renderer, calibrePath, baseUrl, protocol
 
 const fs = require('fs')
 const path = require('path')
@@ -25,7 +14,6 @@ const { generateEbook } = require('../html')
 const version = require('../../package.json').version
 const PDF_SIZE = getSizeInByte(10) // 10 Mb
 
-
 program
   .version('repo-to-pdf ' + version)
   .usage('<input> [output] [options]')
@@ -38,25 +26,24 @@ program
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
   .option('-c, --calibre [path]', 'path to calibre')
   .option('-b, --baseUrl [url]', 'base url of html folder. By default file:// is used.')
-  .action(function (input, output) {
+  .action(function(input, output) {
     inputFolder = input
     outputFile = output
   })
 
 program.parse(process.argv)
 
-title       = program.title || inputFolder
-device      = program.device
-pdf_size    = program.size ? getSizeInByte(program.size) : PDF_SIZE
-white_list  = program.whitelist
-renderer    = program.renderer
-format      = program.format
+const title = program.title || inputFolder
+const device = program.device
+const pdf_size = program.size ? getSizeInByte(program.size) : PDF_SIZE
+const format = program.format
+const white_list = program.whitelist
+renderer = program.renderer
 calibrePath = program.calibre
 if (program.baseUrl) {
-  protocol = ""
+  protocol = ''
   baseUrl = program.baseUrl
-}
-else {
+} else {
   protocol = os.name === 'windows' ? 'file:///' : 'file://'
   baseUrl = path.resolve(__dirname, '../../html5bp')
 }
@@ -67,7 +54,7 @@ if (format !== 'pdf' && renderer === 'node') {
 }
 
 // check calibre path
-calibrePaths = ['/Applications/calibre.app/Contents/MacOS/ebook-convert', '/usr/bin/ebook-convert']
+const calibrePaths = ['/Applications/calibre.app/Contents/MacOS/ebook-convert', '/usr/bin/ebook-convert']
 if (calibrePath) {
   calibrePaths.unshift(calibrePath)
 }
@@ -92,5 +79,5 @@ generateEbook(inputFolder, outputFile, title, {
   format,
   device,
   baseUrl,
-  protocol
+  protocol,
 })

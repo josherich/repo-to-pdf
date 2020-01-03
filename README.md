@@ -16,11 +16,13 @@ npm install repo-to-pdf
 ## Usage
 
 ### Basic
+
 ```bash
 npx repo-to-pdf [src/folder]
 ```
 
 ### All options
+
 ```bash
 -d, --device [platform]
 device [desktop(default)|mobile|tablet]

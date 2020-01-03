@@ -8,15 +8,15 @@ const RepoBook = require('./repo')
 const { sequenceRenderEbook } = require('./render')
 const { getFileName, getFileNameExt } = require('./utils')
 
-let opts = {
+const opts = {
   cssPath: {
-    desktop: "./css/github-min.css",
-    tablet: "./css/github-min-tablet.css",
-    mobile: "./css/github-min-mobile.css"
+    desktop: './css/github-min.css',
+    tablet: './css/github-min-tablet.css',
+    mobile: './css/github-min-mobile.css',
   },
-  highlightCssPath: "./css/vs.css",
+  highlightCssPath: './css/vs.css',
   relaxedCSS: {
-    desktop: "",
+    desktop: '',
     tablet: `@page {
               size: 8in 14in;
               -relaxed-page-width: 8in;
@@ -28,26 +28,25 @@ let opts = {
               -relaxed-page-width: 6in;
               -relaxed-page-height: 10in;
               margin: 0;
-            }`
-  }
+            }`,
+  },
 }
 
 function generateEbook(inputFolder, outputFile, title, options) {
-  let { renderer, calibrePath, pdf_size, white_list, format, device, baseUrl, protocol } = options
-  let repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
-  let outputFiles = []
+  const { pdf_size, white_list, device, baseUrl, protocol } = options
+  const repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
+  const outputFiles = []
 
-  outputFileName = outputFile || inputFolder + '.pdf'
-  outputFile = path.resolve(
-    process.cwd(),
-    getFileNameExt(outputFileName, 'html') || getFileName(inputFolder) + '.html'
-  )
+  const outputFileName = outputFile || inputFolder + '.pdf'
+  options.outputFileName = outputFileName
 
-  while(repoBook.hasNextPart()) {
-    let mdString = repoBook.render()
-    let mdParser = new Remarkable({
+  outputFile = path.resolve(process.cwd(), getFileNameExt(outputFileName, 'html') || getFileName(inputFolder) + '.html')
+
+  while (repoBook.hasNextPart()) {
+    const mdString = repoBook.render()
+    const mdParser = new Remarkable({
       breaks: true,
-      highlight: function (str, lang) {
+      highlight: function(str, lang) {
         if (lang && hljs.getLanguage(lang)) {
           try {
             return hljs.highlight(lang, str).value
@@ -59,25 +58,23 @@ function generateEbook(inputFolder, outputFile, title, options) {
         } catch (err) {}
 
         return ''
-      }
-    })
-    .use(function(remarkable) {
+      },
+    }).use(function(remarkable) {
       remarkable.renderer.rules.heading_open = function(tokens, idx) {
-        return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>';
+        return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>'
       }
     })
 
-    let mdHtml = `<article class="markdown-body">`
-                    + mdParser.render(mdString)
-               + `</article>`
-    let indexHtmlPath = path.join(__dirname, '../html5bp', 'index.html')
-    let html = fs.readFileSync(indexHtmlPath, 'utf-8')
+    const mdHtml = `<article class="markdown-body">` + mdParser.render(mdString) + `</article>`
+    const indexHtmlPath = path.join(__dirname, '../html5bp', 'index.html')
+    const html = fs
+      .readFileSync(indexHtmlPath, 'utf-8')
       // TODO: this sits before content replacing, to prevent replacing baseUrl in content text
-      .replace(/\{\{baseUrl\}\}/g,  protocol + baseUrl)
-      .replace('{{cssPath}}',       protocol + path.join(baseUrl, opts.cssPath[device]))
+      .replace(/\{\{baseUrl\}\}/g, protocol + baseUrl)
+      .replace('{{cssPath}}', protocol + path.join(baseUrl, opts.cssPath[device]))
       .replace('{{highlightPath}}', protocol + path.join(baseUrl, opts.highlightCssPath))
-      .replace('{{relaxedCSS}}',    protocol + path.join(baseUrl, opts.relaxedCSS[device]))
-      .replace('{{content}}',       mdHtml)
+      .replace('{{relaxedCSS}}', protocol + path.join(baseUrl, opts.relaxedCSS[device]))
+      .replace('{{content}}', mdHtml)
 
     let _outputFile = outputFile
     if (!repoBook.hasSingleFile()) {

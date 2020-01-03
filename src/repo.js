@@ -35,126 +35,118 @@ class RepoBook {
   }
 
   registerLanguage(name, language) {
-    let lang = language(hljs)
+    const lang = language(hljs)
     if (lang && lang.aliases) {
       name = name.split('.')[0]
       this.aliases[name] = name
       lang.aliases.map(alias => {
         if (this.whiteList) {
-          if (this.whiteList.indexOf(alias) > -1)
+          if (this.whiteList.indexOf(alias) > -1) {
             this.aliases[alias] = name.split('.')[0]
+          }
         } else {
           this.aliases[alias] = name.split('.')[0]
         }
+        return null
       })
     }
   }
 
   registerLanguages() {
-    let listPath = path.join(
-      path.dirname(require.resolve('highlight.js')),
-      "languages"
-    )
-    fs.readdirSync(listPath)
-      .map(f => {
-        this.registerLanguage(f, require(path.join(listPath, f)))
-      })
+    const listPath = path.join(path.dirname(require.resolve('highlight.js')), 'languages')
+    fs.readdirSync(listPath).map(f => {
+      this.registerLanguage(f, require(path.join(listPath, f)))
+      return null
+    })
   }
 
   readDir(dir, allFiles = [], level = 0) {
-    let files = fs
+    const files = fs
       .readdirSync(dir)
       .map(f => path.join(dir, f))
-      .filter(f => (fs.lstatSync(f).size / 1000) < 2000) // smaller than 2m
+      .filter(f => fs.lstatSync(f).size / 1000 < 2000) // smaller than 2m
       .map(f => [f, level])
 
     level > 0 ? allFiles.push([dir, level, true]) : null // push folder name
 
     files.map(pair => {
-      let f = pair[0]
-      let blackListHit = this.blackList.filter(e => {
-        return !!f.match(e)
-      }).length > 0
+      const f = pair[0]
+      const blackListHit = this.blackList.filter(e => !!f.match(e)).length > 0
       if (!fs.lstatSync(f).isDirectory()) {
-        allFiles.push([f, level+1, false])
+        allFiles.push([f, level + 1, false])
       } else {
-        path.basename(f)[0] != '.' // ignore hidden folders
-        && blackListHit == false
-        && this.readDir(f, allFiles, level+1)
+        path.basename(f)[0] !== '.' && // ignore hidden folders
+          blackListHit === false &&
+          this.readDir(f, allFiles, level + 1)
       }
+      return null
     })
     return allFiles
   }
 
   renderIndex(files) {
     return files
-    .filter(f => {
-      let fileName = getFileName(f[0])
-      let ext = path.extname(fileName).slice(1)
-      let isFolder = fs.lstatSync(f[0]).isDirectory()
-      return fileName[0] != '.' && (ext in this.aliases || isFolder)
-    })
-    .map(f => {
-      let indexName   = getCleanFilename(f[0], this.dir, f[1]),
-          anchorName  = getCleanFilename(f[0], this.dir),
-          left_pad    = f[2] ? "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(f[1]) : "",
-          h_level     = "####",
-          list_style  = f[2] ? "" : "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(f[1]) + "|-"
-      return f[2] ? `${h_level} ${left_pad} ${list_style} /${indexName}` : `${h_level} ${left_pad}[${list_style} ${indexName}](#${anchorName})`
-    })
-    .join('\n')
+      .filter(f => {
+        const fileName = getFileName(f[0])
+        const ext = path.extname(fileName).slice(1)
+        const isFolder = fs.lstatSync(f[0]).isDirectory()
+        return fileName[0] !== '.' && (ext in this.aliases || isFolder)
+      })
+      .map(f => {
+        const indexName = getCleanFilename(f[0], this.dir, f[1]),
+          anchorName = getCleanFilename(f[0], this.dir),
+          left_pad = f[2] ? '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1]) : '',
+          h_level = '####',
+          list_style = f[2] ? '' : '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1]) + '|-'
+        return f[2] ? `${h_level} ${left_pad} ${list_style} /${indexName}` : `${h_level} ${left_pad}[${list_style} ${indexName}](#${anchorName})`
+      })
+      .join('\n')
   }
 
   render() {
-    let files = this.files
-    let contents = []
+    const files = this.files
+    const contents = []
     let i = this.fileOffset
 
     for (; i < files.length; i++) {
-      let file = files[i][0]
+      const file = files[i][0]
 
-      let fileName = getFileName(file)
+      const fileName = getFileName(file)
       if (fs.statSync(file).isDirectory()) {
         continue
       }
 
-      let ext = path.extname(fileName).slice(1)
+      const ext = path.extname(fileName).slice(1)
 
-      if (ext.length == 0) {
+      if (ext.length === 0) {
         continue
       }
 
-      if (fileName[0] == '.') {
+      if (fileName[0] === '.') {
         continue
       }
 
-      let lang = this.aliases[ext]
+      const lang = this.aliases[ext]
       if (lang) {
         let data = fs.readFileSync(file)
         if (ext === 'md') {
-          data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)`
-            + "\n"
-            + data
-            + "\n"
+          data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n' + data + '\n'
         } else {
-          data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)`
-            + "\n``` " + lang  + "\n"
-            + data
-            + "\n```\n"
+          data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n``` ' + lang + '\n' + data + '\n```\n'
         }
         contents.push(data)
 
         this.byteOffset += data.length * 2
         if (this.byteOffset > this.pdf_size) {
           // if more than one part
-          let title = `# ${this.title} (${++this.partOffset})\n\n\n\n`
+          const title = `# ${this.title} (${++this.partOffset})\n\n\n\n`
 
-          let toc = "## Contents\n"
-          let index = this.renderIndex(files.slice(this.fileOffset, i+1))
+          let toc = '## Contents\n'
+          const index = this.renderIndex(files.slice(this.fileOffset, i + 1))
           toc += index
           contents.unshift(title, toc)
 
-          if (i == this.fileOffset) {
+          if (i === this.fileOffset) {
             // when single file exceeds size limit
             this.fileOffset++
           } else {
@@ -164,7 +156,6 @@ class RepoBook {
 
           return contents.join('\n')
         }
-
       }
     }
 
@@ -173,12 +164,12 @@ class RepoBook {
     }
 
     // if one part
-    let title = this.partOffset
+    const title = this.partOffset
       ? `# ${this.title} (${++this.partOffset})\n\n\n\n` // the last part
       : `# ${this.title} \n\n\n\n` // single pdf
 
-    let toc = "## Contents\n"
-    let index = this.renderIndex(files.slice(this.fileOffset, i+1))
+    let toc = '## Contents\n'
+    const index = this.renderIndex(files.slice(this.fileOffset, i + 1))
     toc += index
     contents.unshift(title, toc)
 

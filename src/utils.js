@@ -5,16 +5,18 @@ function getSizeInByte(mb) {
 }
 
 function getFileName(fpath) {
-  let base = path.basename(fpath)
+  const base = path.basename(fpath)
   return base[0] === '.' ? 'untitled' : base
 }
 
 function getCleanFilename(filename, folder, depth = 0) {
   filename = filename.replace(folder, '')
   if (depth > 0) {
-    return filename.split('/').slice(depth).join('/')
-  }
-  else {
+    return filename
+      .split('/')
+      .slice(depth)
+      .join('/')
+  } else {
     return filename
   }
 }
