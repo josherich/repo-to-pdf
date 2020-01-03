@@ -10,11 +10,11 @@ const { getFileName, getFileNameExt } = require('./utils')
 
 const opts = {
   cssPath: {
-    desktop: './css/github-min.css',
-    tablet: './css/github-min-tablet.css',
-    mobile: './css/github-min-mobile.css',
+    desktop: '/css/github-min.css',
+    tablet: '/css/github-min-tablet.css',
+    mobile: '/css/github-min-mobile.css',
   },
-  highlightCssPath: './css/vs.css',
+  highlightCssPath: '/css/vs.css',
   relaxedCSS: {
     desktop: '',
     tablet: `@page {
@@ -71,9 +71,9 @@ function generateEbook(inputFolder, outputFile, title, options) {
       .readFileSync(indexHtmlPath, 'utf-8')
       // TODO: this sits before content replacing, to prevent replacing baseUrl in content text
       .replace(/\{\{baseUrl\}\}/g, protocol + baseUrl)
-      .replace('{{cssPath}}', protocol + path.join(baseUrl, opts.cssPath[device]))
-      .replace('{{highlightPath}}', protocol + path.join(baseUrl, opts.highlightCssPath))
-      .replace('{{relaxedCSS}}', protocol + path.join(baseUrl, opts.relaxedCSS[device]))
+      .replace('{{cssPath}}', protocol + baseUrl + opts.cssPath[device])
+      .replace('{{highlightPath}}', protocol + baseUrl + opts.highlightCssPath)
+      .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
       .replace('{{content}}', mdHtml)
 
     let _outputFile = outputFile
