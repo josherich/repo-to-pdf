@@ -1,9 +1,13 @@
 const fs = require('fs')
+const path = require('path')
+const os = require('os')
 
 const { generateEbook } = require('../src/html')
 const { getSizeInByte } = require('../src/utils')
 
 const PDF_SIZE = getSizeInByte(10) // 10 Mb
+const protocol = os.name === 'windows' ? 'file:///' : 'file://'
+const baseUrl = path.resolve(__dirname, '../html5bp')
 
 describe('render', () => {
   it('with default', async () => {
@@ -14,9 +18,11 @@ describe('render', () => {
       pdf_size: PDF_SIZE,
       white_list: null,
       format: 'pdf',
-      device: 'desktop'
+      device: 'desktop',
+      baseUrl,
+      protocol
     })
-    expect(fs.existsSync(output)).toBe(true);
+    expect(fs.existsSync(output)).toBe(true)
   })
 
   it('with mobi', async () => {
@@ -27,9 +33,11 @@ describe('render', () => {
       pdf_size: PDF_SIZE,
       white_list: null,
       format: 'mobi',
-      device: 'desktop'
+      device: 'desktop',
+      baseUrl,
+      protocol
     })
-    expect(fs.existsSync(output)).toBe(true);
+    expect(fs.existsSync(output)).toBe(true)
   })
 
   it('with mobile pdf', async () => {
@@ -40,9 +48,11 @@ describe('render', () => {
       pdf_size: PDF_SIZE,
       white_list: null,
       format: 'pdf',
-      device: 'mobile'
+      device: 'mobile',
+      baseUrl,
+      protocol
     })
-    expect(fs.existsSync(output)).toBe(true);
+    expect(fs.existsSync(output)).toBe(true)
   })
 
   it('with tablet pdf', async () => {
@@ -53,9 +63,10 @@ describe('render', () => {
       pdf_size: PDF_SIZE,
       white_list: null,
       format: 'pdf',
-      device: 'tablet'
+      device: 'tablet',
+      baseUrl,
+      protocol
     })
-    expect(fs.existsSync(output)).toBe(true);
+    expect(fs.existsSync(output)).toBe(true)
   })
-
-});
+})
