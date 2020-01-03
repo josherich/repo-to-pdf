@@ -58,3 +58,9 @@ path to ebook-convert, for MacOS, try /Applications/calibre.app/Contents/MacOS/e
 npx repo-to-pdf [src/folder] --device tablet
 npx repo-to-pdf [src/folder] --device mobile
 ```
+
+### Testing
+
+```bash
+npm run test
+```
