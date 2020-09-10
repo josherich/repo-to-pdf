@@ -4,6 +4,9 @@ function getSizeInByte(mb) {
   return mb * 0.8 * 1000 * 1000
 }
 
+// '../' => 'untitled'
+// './'  => 'untitled'
+// './path'  => 'path'
 function getFileName(fpath) {
   const base = path.basename(fpath)
   return base[0] === '.' ? 'untitled' : base
@@ -21,6 +24,7 @@ function getCleanFilename(filename, folder, depth = 0) {
   }
 }
 
+// 'file.random_extension' => 'file.ext'
 function getFileNameExt(fileName, ext = 'pdf') {
   return fileName.replace(/\.[0-9a-zA-Z]+$/, `.${ext}`)
 }

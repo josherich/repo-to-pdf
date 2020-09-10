@@ -6,19 +6,32 @@ const { getFileNameExt } = require('./utils')
 
 let startTs
 
-function sequenceRenderEbook(htmlFiles, i, options) {
+function removeRelaxedjsTempFiles(outputFileName) {
+  const prefix = outputFileName.split('.').reverse().slice(1).reverse().join('.')
+  const html = spawnSync('rm', [`${prefix}.html`])
+  const htm = spawnSync('rm', [`${prefix}_temp.htm`])
+}
+
+function reportPerformance(outputFileName, startTs) {
+  const ts = (Date.now() - startTs) / 1000
+  console.log(`${outputFileName} created in ${ts} seconds.`)
+}
+
+function sequenceRenderEbook(docFiles, options, i = 0) {
   const { outputFileName, renderer, calibrePath, format } = options
 
   if (i === 0) {
     startTs = Date.now()
   }
-  if (i >= htmlFiles.length) {
-    const ts = (Date.now() - startTs) / 1000
-    console.log(`${outputFileName} created in ${ts} seconds.`)
+  if (i >= docFiles.length) {
+    if (renderer === 'node') {
+      removeRelaxedjsTempFiles(outputFileName)
+    }
+    reportPerformance(outputFileName, startTs)
     return
   }
-  const htmlFile = path.resolve(process.cwd(), htmlFiles[i])
-  const formatFile = getFileNameExt(htmlFile, format)
+  const docFile = path.resolve(process.cwd(), docFiles[i])
+  const formatFile = getFileNameExt(docFile, format)
 
   const formatArgs = {
     pdf: [
@@ -44,8 +57,8 @@ function sequenceRenderEbook(htmlFiles, i, options) {
     epub: ['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
   }
   const args = {
-    node: ['node', [path.resolve(__dirname, require.resolve('relaxedjs')), htmlFile, '--build-once', '--no-sandbox']],
-    calibre: [calibrePath, [htmlFile, formatFile].concat(formatArgs[format])],
+    node: ['node', [path.resolve(__dirname, require.resolve('relaxedjs')), docFile, '--build-once', '--no-sandbox']],
+    calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])]
   }
   const cmd = args[renderer]
 
@@ -56,10 +69,10 @@ function sequenceRenderEbook(htmlFiles, i, options) {
   }
 
   if (!fs.existsSync(formatFile)) {
-    console.log(`${htmlFiles[i]} was not rendered.`)
+    console.log(`${docFiles[i]} was not rendered.`)
   }
 
-  sequenceRenderEbook(htmlFiles, i + 1, options)
+  sequenceRenderEbook(docFiles, options, i + 1)
 }
 
 module.exports = { sequenceRenderEbook }

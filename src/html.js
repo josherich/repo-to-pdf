@@ -8,82 +8,105 @@ const RepoBook = require('./repo')
 const { sequenceRenderEbook } = require('./render')
 const { getFileName, getFileNameExt } = require('./utils')
 
-const opts = {
-  cssPath: {
-    desktop: '/css/github-min.css',
-    tablet: '/css/github-min-tablet.css',
-    mobile: '/css/github-min-mobile.css',
-  },
-  highlightCssPath: '/css/vs.css',
-  relaxedCSS: {
-    desktop: '',
-    tablet: `@page {
-              size: 8in 14in;
-              -relaxed-page-width: 8in;
-              -relaxed-page-height: 14in;
-              margin: 0;
-            }`,
-    mobile: `@page {
-              size: 6in 10in;
-              -relaxed-page-width: 6in;
-              -relaxed-page-height: 10in;
-              margin: 0;
-            }`,
-  },
+function getRemarkableParser() {
+  return new Remarkable({
+    breaks: true,
+    highlight: function(str, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          return hljs.highlight(lang, str).value
+        } catch (err) {}
+      }
+
+      try {
+        return hljs.highlightAuto(str).value
+      } catch (err) {}
+
+      return ''
+    },
+  }).use(function(remarkable) {
+    remarkable.renderer.rules.heading_open = function(tokens, idx) {
+      return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>'
+    }
+  })
 }
 
-function generateEbook(inputFolder, outputFile, title, options) {
-  const { pdf_size, white_list, device, baseUrl, protocol } = options
+// => './path/file-1.html'
+function getHTMLFiles(mdString, repoBook, options) {
+  const { pdf_size, white_list, device, baseUrl, protocol, renderer, outputFileName, inputFolder } = options
+  const opts = {
+    cssPath: {
+      desktop: '/css/github-min.css',
+      tablet: '/css/github-min-tablet.css',
+      mobile: '/css/github-min-mobile.css',
+    },
+    highlightCssPath: '/css/vs.css',
+    relaxedCSS: {
+      desktop: '',
+      tablet: `@page {
+                size: 8in 14in;
+                -relaxed-page-width: 8in;
+                -relaxed-page-height: 14in;
+                margin: 0;
+              }`,
+      mobile: `@page {
+                size: 6in 10in;
+                -relaxed-page-width: 6in;
+                -relaxed-page-height: 10in;
+                margin: 0;
+              }`,
+    },
+  }
+  const HTMLFileNameWithExt = getFileNameExt(outputFileName, 'html') || getFileName(inputFolder) + '.html'
+  let outputFile = path.resolve(process.cwd(), HTMLFileNameWithExt)
+
+  const mdParser = getRemarkableParser()
+
+  const mdHtml = `<article class="markdown-body">` + mdParser.render(mdString) + `</article>`
+  const indexHtmlPath = path.join(__dirname, '../html5bp', 'index.html')
+  const htmlString = fs
+    .readFileSync(indexHtmlPath, 'utf-8')
+    // TODO: this sits before content replacing, to prevent replacing baseUrl in content text
+    .replace(/\{\{baseUrl\}\}/g, protocol + baseUrl)
+    .replace('{{cssPath}}', protocol + baseUrl + opts.cssPath[device])
+    .replace('{{highlightPath}}', protocol + baseUrl + opts.highlightCssPath)
+    .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
+    .replace('{{content}}', mdHtml)
+
+  if (!repoBook.hasSingleFile()) {
+    outputFile = outputFile.replace('.html', '-' + repoBook.currentPart() + '.html')
+  }
+  fs.writeFileSync(outputFile, htmlString)
+  return outputFile
+}
+
+function generateEbook(inputFolder, outputFile, title, options = { renderer: 'node' }) {
+  const { pdf_size, white_list, renderer } = options
   const repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
-  const outputFiles = []
 
-  const outputFileName = outputFile || inputFolder + '.pdf'
+  const defaultOutputFileName = getFileName(inputFolder) + '.pdf'
+  const outputFileName = outputFile || defaultOutputFileName
+
   options.outputFileName = outputFileName
+  options.inputFolder = inputFolder
+  options.outputFile = outputFile
 
-  outputFile = path.resolve(process.cwd(), getFileNameExt(outputFileName, 'html') || getFileName(inputFolder) + '.html')
-
+  const outputFiles = []
   while (repoBook.hasNextPart()) {
     const mdString = repoBook.render()
-    const mdParser = new Remarkable({
-      breaks: true,
-      highlight: function(str, lang) {
-        if (lang && hljs.getLanguage(lang)) {
-          try {
-            return hljs.highlight(lang, str).value
-          } catch (err) {}
-        }
-
-        try {
-          return hljs.highlightAuto(str).value
-        } catch (err) {}
-
-        return ''
-      },
-    }).use(function(remarkable) {
-      remarkable.renderer.rules.heading_open = function(tokens, idx) {
-        return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>'
-      }
-    })
-
-    const mdHtml = `<article class="markdown-body">` + mdParser.render(mdString) + `</article>`
-    const indexHtmlPath = path.join(__dirname, '../html5bp', 'index.html')
-    const html = fs
-      .readFileSync(indexHtmlPath, 'utf-8')
-      // TODO: this sits before content replacing, to prevent replacing baseUrl in content text
-      .replace(/\{\{baseUrl\}\}/g, protocol + baseUrl)
-      .replace('{{cssPath}}', protocol + baseUrl + opts.cssPath[device])
-      .replace('{{highlightPath}}', protocol + baseUrl + opts.highlightCssPath)
-      .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
-      .replace('{{content}}', mdHtml)
-
-    let _outputFile = outputFile
-    if (!repoBook.hasSingleFile()) {
-      _outputFile = outputFile.replace('.html', '-' + repoBook.currentPart() + '.html')
+    let outputFile = null;
+    if (renderer === 'node') {
+      outputFile = getHTMLFiles(mdString, repoBook, options)
+    } else if (renderer === 'calibre') {
+      outputFile = getHTMLFiles(mdString, repoBook, options)
     }
-    fs.writeFileSync(_outputFile, html)
-    outputFiles.push(_outputFile)
+    if (!outputFile) {
+      console.log('generation failed, unknown exception.')
+      break
+    }
+    outputFiles.push(outputFile)
   }
-  sequenceRenderEbook(outputFiles, 0, options)
+  sequenceRenderEbook(outputFiles, options)
 }
 
 module.exports = { generateEbook }
