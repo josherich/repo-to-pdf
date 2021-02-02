@@ -25,20 +25,20 @@ describe('render', () => {
     expect(fs.existsSync(output)).toBe(true)
   })
 
-  it('with mobi', async () => {
-    const output = 'self.mobi'
-    generateEbook('./src', output, 'repo-to-pdf', {
-      renderer: 'calibre',
-      calibrePath: '/Applications/calibre.app/Contents/MacOS/ebook-convert',
-      pdf_size: PDF_SIZE,
-      white_list: null,
-      format: 'mobi',
-      device: 'desktop',
-      baseUrl,
-      protocol
-    })
-    expect(fs.existsSync(output)).toBe(true)
-  })
+  // it('with mobi', async () => {
+  //   const output = 'self.mobi'
+  //   generateEbook('./src', output, 'repo-to-pdf', {
+  //     renderer: 'calibre',
+  //     calibrePath: '/Applications/calibre.app/Contents/MacOS/ebook-convert',
+  //     pdf_size: PDF_SIZE,
+  //     white_list: null,
+  //     format: 'mobi',
+  //     device: 'desktop',
+  //     baseUrl,
+  //     protocol
+  //   })
+  //   expect(fs.existsSync(output)).toBe(true)
+  // })
 
   it('with mobile pdf', async () => {
     const output = 'self-mobile.pdf'

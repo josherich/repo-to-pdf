@@ -56,12 +56,19 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
     mobi: ['--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
     epub: ['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
   }
+
   const args = {
-    node: ['node', [path.resolve(__dirname, require.resolve('relaxedjs')), docFile, '--build-once', '--no-sandbox']],
+    node: ['npx', ['relaxed', docFile, '--build-once', '--no-sandbox']],
     calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])]
   }
-  const cmd = args[renderer]
 
+  if (renderer === 'calibre') {
+    if (!fs.existsSync(calibrePath)) {
+      console.log(`Calibre is not available.`)
+    }
+  }
+
+  const cmd = args[renderer]
   const res = spawnSync(cmd[0], cmd[1])
   if (res.error) {
     console.log(`Some error happened when creating ${formatFile}.`)
