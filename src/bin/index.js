@@ -49,7 +49,7 @@ if (program.baseUrl) {
 }
 
 if (format !== 'pdf' && renderer === 'node') {
-  console.log(`Try to create ${format}, use renderer calibre.`)
+  console.log(`Try to create ${format}, use renderer Calibre.`)
   renderer = 'calibre'
 }
 
@@ -66,7 +66,7 @@ for (; i < calibrePaths.length; i++) {
     break
   }
 }
-if (i === calibrePaths.length) {
+if (i === calibrePaths.length && ['mobi', 'epub'].includes(format)) {
   console.log('Calibre ebook-convert not found, make sure you pass it by --calibre /path/to/ebook-convert.')
   return
 }
