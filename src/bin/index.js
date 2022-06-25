@@ -22,7 +22,7 @@ program
   .option('-t, --title [name]', 'title')
   .option('-w, --whitelist [wlist]', 'file format white list, split by ,')
   .option('-s, --size [size]', 'pdf file size limit, in Mb')
-  .option('-r, --renderer <engine>', 'use chrome or calibre to render pdf', 'node')
+  .option('-r, --renderer <engine>', 'use chrome, wkhtmltopdf or calibre to render pdf', 'node')
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
   .option('-c, --calibre [path]', 'path to calibre')
   .option('-b, --baseUrl [url]', 'base url of html folder. By default file:// is used.')

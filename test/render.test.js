@@ -12,7 +12,7 @@ const baseUrl = path.resolve(__dirname, '../html5bp')
 describe('render', () => {
   it('with default', async () => {
     const output = 'self.pdf'
-    generateEbook('./src', output, 'repo-to-pdf', {
+    await generateEbook('./src', output, 'repo-to-pdf', {
       renderer: 'node',
       calibrePath: '/Applications/calibre.app/Contents/MacOS/ebook-convert',
       pdf_size: PDF_SIZE,
@@ -42,7 +42,7 @@ describe('render', () => {
 
   it('with mobile pdf', async () => {
     const output = 'self-mobile.pdf'
-    generateEbook('./src', output, 'repo-to-pdf', {
+    await generateEbook('./src', output, 'repo-to-pdf', {
       renderer: 'node',
       calibrePath: '/Applications/calibre.app/Contents/MacOS/ebook-convert',
       pdf_size: PDF_SIZE,
@@ -57,7 +57,7 @@ describe('render', () => {
 
   it('with tablet pdf', async () => {
     const output = 'self-tablet.pdf'
-    generateEbook('./src', output, 'repo-to-pdf', {
+    await generateEbook('./src', output, 'repo-to-pdf', {
       renderer: 'node',
       calibrePath: '/Applications/calibre.app/Contents/MacOS/ebook-convert',
       pdf_size: PDF_SIZE,

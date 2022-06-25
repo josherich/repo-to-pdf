@@ -3,6 +3,8 @@ const fs = require('fs')
 const { spawnSync } = require('child_process')
 
 const { getFileNameExt } = require('./utils')
+const html2PDF = require('./puppeteer');
+const wkhtml2PDF = require('./wkhtmltopdf');
 
 let startTs
 
@@ -15,6 +17,28 @@ function removeRelaxedjsTempFiles(outputFileName) {
 function reportPerformance(outputFileName, startTs) {
   const ts = (Date.now() - startTs) / 1000
   console.log(`${outputFileName} created in ${ts} seconds.`)
+}
+
+async function sequenceRenderPDF(docFiles) {
+  // await Promise.all(docFiles.map(async (file) => {
+  //   await html2PDF.pdf(file, file.replace('.html', '.pdf'));
+  // }));
+  for (let i = 0; i < docFiles.length; i++) {
+    const file = docFiles[i];
+    await html2PDF.pdf(file, file.replace('.html', '.pdf'));
+  }
+}
+
+function renderPDF(docFiles) {
+  const parallel = 1;
+  const total = docFiles.length;
+  for (let i = 0; i < total;) {
+    let j = 0;
+    for (; j < parallel && (i+j) < total; j++) {
+      wkhtml2PDF(docFiles[i+j], docFiles[i+j].replace('.html', '.pdf'));
+    }
+    i += j;
+  }
 }
 
 function sequenceRenderEbook(docFiles, options, i = 0) {
@@ -59,7 +83,10 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
   const relaxedjsMain = path.resolve(__dirname, require.resolve('relaxedjs'))
   const relaxedjsBin = path.resolve(path.dirname(relaxedjsMain), 'index.js')
   const args = {
-    node: ['node', [relaxedjsBin, docFile, '--build-once', '--no-sandbox']],
+    node: ['node', ['--max_old_space_size=4096', relaxedjsBin, docFile,
+      '--build-once',
+      '--no-sandbox',
+    ]],
     calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])]
   }
 
@@ -73,14 +100,15 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
   const res = spawnSync(cmd[0], cmd[1])
   if (res.error) {
     console.log(`Some error happened when creating ${formatFile}.`)
+    console.error(res.error);
     return
   }
 
   if (!fs.existsSync(formatFile)) {
-    console.log(`${docFiles[i]} was not rendered.`)
+    console.log(`${docFiles[i]} was not rendered. ${formatFile}`)
   }
 
   sequenceRenderEbook(docFiles, options, i + 1)
 }
 
-module.exports = { sequenceRenderEbook }
+module.exports = { sequenceRenderEbook, sequenceRenderPDF, renderPDF }

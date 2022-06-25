@@ -5,7 +5,7 @@ const { Remarkable } = require('remarkable')
 const hljs = require('highlight.js')
 
 const RepoBook = require('./repo')
-const { sequenceRenderEbook } = require('./render')
+const { sequenceRenderEbook, sequenceRenderPDF, renderPDF } = require('./render')
 const { getFileName, getFileNameExt } = require('./utils')
 
 function getRemarkableParser() {
@@ -80,7 +80,7 @@ function getHTMLFiles(mdString, repoBook, options) {
   return outputFile
 }
 
-function generateEbook(inputFolder, outputFile, title, options = { renderer: 'node' }) {
+async function generateEbook(inputFolder, outputFile, title, options = { renderer: 'node' }) {
   const { pdf_size, white_list, renderer } = options
   const repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
 
@@ -94,19 +94,22 @@ function generateEbook(inputFolder, outputFile, title, options = { renderer: 'no
   const outputFiles = []
   while (repoBook.hasNextPart()) {
     const mdString = repoBook.render()
-    let outputFile = null;
-    if (renderer === 'node') {
-      outputFile = getHTMLFiles(mdString, repoBook, options)
-    } else if (renderer === 'calibre') {
-      outputFile = getHTMLFiles(mdString, repoBook, options)
-    }
+    let outputFile = null
+    outputFile = getHTMLFiles(mdString, repoBook, options)
+
     if (!outputFile) {
-      console.log('generation failed, unknown exception.')
+      console.log('Fail to generate HTML files that are used to generate PDFs.')
       break
     }
     outputFiles.push(outputFile)
   }
-  sequenceRenderEbook(outputFiles, options)
+  if (renderer === 'node' || renderer === 'calibre') {
+    sequenceRenderEbook(outputFiles, options)
+  } else if (renderer === 'puppeteer') {
+    await sequenceRenderPDF(outputFiles)
+  } else if (renderer === 'wkhtmltopdf') {
+    renderPDF(outputFiles)
+  }
 }
 
 module.exports = { generateEbook }
