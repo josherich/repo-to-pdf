@@ -27,6 +27,7 @@ async function sequenceRenderPDF(docFiles) {
     const file = docFiles[i];
     await html2PDF.pdf(file, file.replace('.html', '.pdf'));
   }
+  html2PDF.chrome.close();
 }
 
 function renderPDF(docFiles) {
