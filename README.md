@@ -21,6 +21,17 @@ npm install repo-to-pdf
 npx repo-to-pdf [src/folder]
 ```
 
+```js
+const {generateEbook} =  require('repo-to-pdf')
+
+generateEbook(
+  './',
+  'test.pdf',
+  'repo-test',
+  {renderer:'node', pdf_size: 3*0.8*1000*1000, format: 'pdf', device: 'desktop'}
+)
+```
+
 ### All options
 
 ```bash

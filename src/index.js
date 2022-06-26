@@ -1,2 +1,2 @@
-const { generateEbook } = require('../html')
+const { generateEbook } = require('./html')
 module.exports = { generateEbook }
