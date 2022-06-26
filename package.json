@@ -1,6 +1,6 @@
 {
   "name": "repo-to-pdf",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "make pdf from a repo of source code",
   "main": "src/index.js",
   "bin": {
@@ -31,7 +31,6 @@
     "commander": "^4.0.0",
     "highlight.js": "^10.4.1",
     "puppeteer": "^1.8.0",
-    "relaxedjs": "0.2.4",
     "remarkable": "^2.0.0"
   },
   "devDependencies": {

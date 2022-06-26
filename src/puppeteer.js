@@ -20,14 +20,19 @@ class HTML2PDF {
       return;
     }
     this.chrome = await puppeteer.launch(this.puppeteerConfig);
-    // console.log('==========chrome init', this.chrome);
+    this.puppeteerPage = await this.chrome.newPage();
+    this.puppeteerPage.setJavaScriptEnabled(false)
     this._initialized = true;
   }
 
+  close() {
+    this.chrome && this.chrome.close();
+    this._initialized = false;
+  }
+
   async pdf(templatePath, outputPath) {
-    console.log('rendering ', templatePath, outputPath)
     await this._initializePlugins();
-    const puppeteerPage = await this.chrome.newPage();
+    const puppeteerPage = this.puppeteerPage;
 
     try {
       await puppeteerPage.goto('file:' + templatePath, {

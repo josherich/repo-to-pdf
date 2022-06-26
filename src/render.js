@@ -20,14 +20,12 @@ function reportPerformance(outputFileName, startTs) {
 }
 
 async function sequenceRenderPDF(docFiles) {
-  // await Promise.all(docFiles.map(async (file) => {
-  //   await html2PDF.pdf(file, file.replace('.html', '.pdf'));
-  // }));
   for (let i = 0; i < docFiles.length; i++) {
     const file = docFiles[i];
     await html2PDF.pdf(file, file.replace('.html', '.pdf'));
   }
-  html2PDF.chrome.close();
+  // close chrome so that cli can terminate
+  html2PDF.close()
 }
 
 function renderPDF(docFiles) {
@@ -35,8 +33,8 @@ function renderPDF(docFiles) {
   const total = docFiles.length;
   for (let i = 0; i < total;) {
     let j = 0;
-    for (; j < parallel && (i+j) < total; j++) {
-      wkhtml2PDF(docFiles[i+j], docFiles[i+j].replace('.html', '.pdf'));
+    for (; j < parallel && (i + j) < total; j++) {
+      wkhtml2PDF(docFiles[i + j], docFiles[i + j].replace('.html', '.pdf'));
     }
     i += j;
   }
@@ -81,13 +79,14 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
     mobi: ['--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
     epub: ['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
   }
-  const relaxedjsMain = path.resolve(__dirname, require.resolve('relaxedjs'))
-  const relaxedjsBin = path.resolve(path.dirname(relaxedjsMain), 'index.js')
+  // const relaxedjsMain = path.resolve(__dirname, require.resolve('relaxedjs'))
+  // const relaxedjsBin = path.resolve(path.dirname(relaxedjsMain), 'index.js')
   const args = {
-    node: ['node', ['--max_old_space_size=4096', relaxedjsBin, docFile,
-      '--build-once',
-      '--no-sandbox',
-    ]],
+    // relaxedjs is deprecated, we are using puppeteer directly now
+    // node: ['node', ['--max_old_space_size=4096', relaxedjsBin, docFile,
+    //   '--build-once',
+    //   '--no-sandbox',
+    // ]],
     calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])]
   }
 

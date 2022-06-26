@@ -1,5 +1,6 @@
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
 
 const { Remarkable } = require('remarkable')
 const hljs = require('highlight.js')
@@ -80,7 +81,63 @@ function getHTMLFiles(mdString, repoBook, options) {
   return outputFile
 }
 
+function checkOptions(options) {
+  if (options.baseUrl) {
+    options.protocol = ''
+  } else {
+    options.protocol = os.name === 'windows' ? 'file:///' : 'file://'
+    options.baseUrl = path.resolve(__dirname, '../html5bp')
+  }
+
+  if (options.format !== 'pdf' && options.renderer === 'node') {
+    console.log(`Try to create ${options.format}, use renderer Calibre.`)
+    options.renderer = 'calibre'
+  }
+
+  // check calibre path
+  const calibrePaths = ['/Applications/calibre.app/Contents/MacOS/ebook-convert', '/usr/bin/ebook-convert']
+  if (options.calibrePath) {
+    calibrePaths.unshift(options.calibrePath)
+  }
+
+  let i = 0
+  for (; i < calibrePaths.length; i++) {
+    if (fs.existsSync(calibrePaths[i])) {
+      options.calibrePath = calibrePaths[i]
+      break
+    }
+  }
+  if (i === calibrePaths.length && ['mobi', 'epub'].includes(options.format)) {
+    console.log('Calibre ebook-convert not found, make sure you specify the path by --calibre /path/to/ebook-convert.')
+    return false
+  }
+  return true
+}
+
+/**
+ * @typedef Options
+ * @type {object}
+ * @property {string} renderer - can be either node, calibre and wkhtmltopdf
+ * @property {string} calibrePath - path of calibre's ebook-convert
+ * @property {string} pdf_size - pdf size limit
+ * @property {string} white_list - list of file extensions to be included
+ * @property {string} format - can be either mobi, epub, pdf
+ * @property {string} device - style can be opt for desktop, tablet and mobile
+ * @property {string} baseUrl - base url of CSS style files
+ */
+
+/**
+ * Generate ebook from content folder with the given file format
+ * @param {string} inputFolder - content folder
+ * @param {string} outputFile - output file name
+ * @param {string} title - title in ebook file
+ * @param {Options} options
+ */
 async function generateEbook(inputFolder, outputFile, title, options = { renderer: 'node' }) {
+  if (!checkOptions(options)) {
+    return
+  }
+
   const { pdf_size, white_list, renderer } = options
   const repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
 
@@ -94,6 +151,10 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
   const outputFiles = []
   while (repoBook.hasNextPart()) {
     const mdString = repoBook.render()
+    if (!mdString) {
+      console.log('Nothing to generate.')
+      return
+    }
     let outputFile = null
     outputFile = getHTMLFiles(mdString, repoBook, options)
 
@@ -103,9 +164,9 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
     }
     outputFiles.push(outputFile)
   }
-  if (renderer === 'node' || renderer === 'calibre') {
+  if (renderer === 'calibre') {
     sequenceRenderEbook(outputFiles, options)
-  } else if (renderer === 'puppeteer') {
+  } else if (renderer === 'node') {
     await sequenceRenderPDF(outputFiles)
   } else if (renderer === 'wkhtmltopdf') {
     renderPDF(outputFiles)
