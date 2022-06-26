@@ -117,12 +117,12 @@ function checkOptions(options) {
 /**
  * @typedef Options
  * @type {object}
- * @property {string} renderer - can be either node, calibre and wkhtmltopdf
+ * @property {string} renderer - [node|calibre|wkhtmltopdf] can be either node, calibre and wkhtmltopdf
  * @property {string} calibrePath - path of calibre's ebook-convert
- * @property {string} pdf_size - pdf size limit
- * @property {string} white_list - list of file extensions to be included
- * @property {string} format - can be either mobi, epub, pdf
- * @property {string} device - style can be opt for desktop, tablet and mobile
+ * @property {string} pdf_size - pdf size limit, in bytes
+ * @property {string} white_list - list of file extensions to be included, separate by ','
+ * @property {string} format - [mobi|epub|pdf] can be either mobi, epub, pdf
+ * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
  * @property {string} baseUrl - base url of CSS style files
  */
 

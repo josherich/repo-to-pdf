@@ -24,6 +24,25 @@ npx repo-to-pdf [src/folder]
 ```js
 const {generateEbook} =  require('repo-to-pdf')
 
+/**
+ * @typedef Options
+ * @type {object}
+ * @property {string} renderer - [node|calibre|wkhtmltopdf] can be either node, calibre and wkhtmltopdf
+ * @property {string} calibrePath - path of calibre's ebook-convert
+ * @property {string} pdf_size - pdf size limit, in bytes
+ * @property {string} white_list - list of file extensions to be included, separate by ','
+ * @property {string} format - [mobi|epub|pdf] can be either mobi, epub, pdf
+ * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
+ * @property {string} baseUrl - base url of CSS style files
+ */
+
+/**
+ * Generate ebook from content folder with the given file format
+ * @param {string} inputFolder - content folder
+ * @param {string} outputFile - output file name
+ * @param {string} title - title in ebook file
+ * @param {Options} options
+ */
 generateEbook(
   './',
   'test.pdf',
@@ -32,7 +51,7 @@ generateEbook(
 )
 ```
 
-### All options
+### Command Line Options
 
 ```bash
 -d, --device [platform]
