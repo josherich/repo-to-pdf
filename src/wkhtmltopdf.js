@@ -3,6 +3,7 @@ const { spawnSync, spawn } = require('child_process');
 module.exports = function pdf(templatePath, outputPath) {
   const res = spawnSync('wkhtmltopdf', [
     '--disable-javascript',
+    '--enable-local-file-access',
     '--default-header',
     '--margin-top', '0',
     '--margin-bottom', '0',
