@@ -38,7 +38,14 @@ class RepoBook {
     const lang = language(hljs)
     if (lang && lang.aliases) {
       name = name.split('.')[0]
-      this.aliases[name] = name
+      if (this.whiteList) {
+        if (this.whiteList.indexOf(name) > -1) {
+          this.aliases[name] = name
+        }
+      } else {
+        this.aliases[name] = name
+      }
+
       lang.aliases.map(alias => {
         if (this.whiteList) {
           if (this.whiteList.indexOf(alias) > -1) {
@@ -160,6 +167,7 @@ class RepoBook {
     }
 
     if (contents.length === 0) {
+      this.done = true
       return null
     }
 

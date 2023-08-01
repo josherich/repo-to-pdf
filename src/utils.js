@@ -14,6 +14,9 @@ function getFileName(fpath) {
 
 function getCleanFilename(filename, folder, depth = 0) {
   filename = filename.replace(folder, '')
+  if (folder === './') {
+    depth -= 1
+  }
   if (depth > 0) {
     return filename
       .split('/')
