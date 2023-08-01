@@ -79,14 +79,8 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
     mobi: ['--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
     epub: ['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
   }
-  // const relaxedjsMain = path.resolve(__dirname, require.resolve('relaxedjs'))
-  // const relaxedjsBin = path.resolve(path.dirname(relaxedjsMain), 'index.js')
+
   const args = {
-    // relaxedjs is deprecated, we are using puppeteer directly now
-    // node: ['node', ['--max_old_space_size=4096', relaxedjsBin, docFile,
-    //   '--build-once',
-    //   '--no-sandbox',
-    // ]],
     calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])]
   }
 
