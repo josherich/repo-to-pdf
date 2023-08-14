@@ -76,8 +76,8 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
       '--page-breaks-before',
       '/',
     ],
-    mobi: ['--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
-    epub: ['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
+    mobi: ['--allow-local-files-outside-root', '--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
+    epub: ['--allow-local-files-outside-root', '--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
   }
 
   const args = {
