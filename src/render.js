@@ -19,13 +19,16 @@ function reportPerformance(outputFileName, startTs) {
   console.log(`${outputFileName} created in ${ts} seconds.`)
 }
 
-async function sequenceRenderPDF(docFiles) {
-  for (let i = 0; i < docFiles.length; i++) {
-    const file = docFiles[i];
-    await html2PDF.pdf(file, file.replace('.html', '.pdf'));
+async function sequenceRenderPDF(docFiles, options = {}) {
+  try {
+    for (let i = 0; i < docFiles.length; i++) {
+      const file = docFiles[i];
+      await html2PDF.pdf(file, file.replace('.html', '.pdf'), options);
+    }
+  } finally {
+    // close chrome so that cli can terminate
+    await html2PDF.close()
   }
-  // close chrome so that cli can terminate
-  html2PDF.close()
 }
 
 function renderPDF(docFiles) {

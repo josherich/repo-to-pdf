@@ -34,6 +34,7 @@ const {generateEbook} =  require('repo-to-pdf')
  * @property {string} format - [mobi|epub|pdf] can be either mobi, epub, pdf
  * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
  * @property {string} baseUrl - base url of CSS style files
+ * @property {boolean} outline - include PDF outline/bookmarks (default true)
  */
 
 /**
@@ -47,7 +48,7 @@ generateEbook(
   './',
   'test.pdf',
   'repo-test',
-  {renderer:'node', pdf_size: 3*0.8*1000*1000, format: 'pdf', device: 'desktop'}
+  {renderer:'node', pdf_size: 3*0.8*1000*1000, format: 'pdf', device: 'desktop', outline: true}
 )
 ```
 
@@ -77,6 +78,10 @@ use either node(relaxedjs) or calibre to render ebook, node outputs pdf, calibre
 -f, --format [pdf|mobi|epub]
 output format, either pdf, mobi, epub. mobi and epub are generated using calibre ebook-convert
 # npx repo-to-pdf ../repo -f mobi
+
+--no-outline
+disable PDF outline/bookmarks generation (enabled by default)
+# npx repo-to-pdf ../repo --no-outline
 
 -c, --calibre [path]
 path to ebook-convert, for MacOS, try /Applications/calibre.app/Contents/MacOS/ebook-convert; for linux, try /usr/bin/ebook-convert
