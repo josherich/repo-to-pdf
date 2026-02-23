@@ -30,7 +30,7 @@
   "dependencies": {
     "commander": "^4.0.0",
     "highlight.js": "^10.4.1",
-    "puppeteer": "^1.8.0",
+    "puppeteer": "^24.15.0",
     "remarkable": "^2.0.0"
   },
   "devDependencies": {

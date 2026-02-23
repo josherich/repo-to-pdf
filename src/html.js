@@ -82,6 +82,20 @@ function getHTMLFiles(mdString, repoBook, options) {
 }
 
 function checkOptions(options) {
+  if (options.outline === undefined) {
+    options.outline = true
+  }
+
+  if (options.concurrency !== undefined) {
+    const concurrency = Number(options.concurrency)
+    if (!Number.isInteger(concurrency) || concurrency < 1) {
+      console.log(`Invalid concurrency "${options.concurrency}", fallback to auto mode.`)
+      delete options.concurrency
+    } else {
+      options.concurrency = concurrency
+    }
+  }
+
   if (options.baseUrl) {
     options.protocol = ''
   } else {
@@ -124,6 +138,8 @@ function checkOptions(options) {
  * @property {string} format - [mobi|epub|pdf] can be either mobi, epub, pdf
  * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
  * @property {string} baseUrl - base url of CSS style files
+ * @property {boolean} outline - include PDF outline/bookmarks (default true)
+ * @property {number} concurrency - max number of parallel Puppeteer render jobs (default auto)
  */
 
 /**
@@ -167,7 +183,7 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
   if (renderer === 'calibre') {
     sequenceRenderEbook(outputFiles, options)
   } else if (renderer === 'node') {
-    await sequenceRenderPDF(outputFiles)
+    await sequenceRenderPDF(outputFiles, options)
   } else if (renderer === 'wkhtmltopdf') {
     renderPDF(outputFiles)
   }

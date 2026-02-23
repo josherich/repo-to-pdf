@@ -2,6 +2,17 @@ const fs = require('fs')
 const path = require('path')
 const os = require('os')
 
+jest.mock('../src/puppeteer', () => {
+  const fs = require('fs')
+
+  return {
+    pdf: jest.fn(async (templatePath, outputPath) => {
+      fs.writeFileSync(outputPath, `mock-pdf:${templatePath}`)
+    }),
+    close: jest.fn(),
+  }
+})
+
 const { generateEbook } = require('../src/html')
 const { getSizeInByte } = require('../src/utils')
 

@@ -34,6 +34,8 @@ const {generateEbook} =  require('repo-to-pdf')
  * @property {string} format - [mobi|epub|pdf] can be either mobi, epub, pdf
  * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
  * @property {string} baseUrl - base url of CSS style files
+ * @property {boolean} outline - include PDF outline/bookmarks (default true)
+ * @property {number} concurrency - max number of parallel Puppeteer PDF jobs (default auto)
  */
 
 /**
@@ -47,7 +49,7 @@ generateEbook(
   './',
   'test.pdf',
   'repo-test',
-  {renderer:'node', pdf_size: 3*0.8*1000*1000, format: 'pdf', device: 'desktop'}
+  {renderer:'node', pdf_size: 3*0.8*1000*1000, format: 'pdf', device: 'desktop', outline: true}
 )
 ```
 
@@ -78,6 +80,14 @@ use either node(relaxedjs) or calibre to render ebook, node outputs pdf, calibre
 output format, either pdf, mobi, epub. mobi and epub are generated using calibre ebook-convert
 # npx repo-to-pdf ../repo -f mobi
 
+--no-outline
+disable PDF outline/bookmarks generation (enabled by default)
+# npx repo-to-pdf ../repo --no-outline
+
+-p, --concurrency [num]
+set max parallel Puppeteer PDF render jobs (auto uses up to 4 cores)
+# npx repo-to-pdf ../repo -p 2
+
 -c, --calibre [path]
 path to ebook-convert, for MacOS, try /Applications/calibre.app/Contents/MacOS/ebook-convert; for linux, try /usr/bin/ebook-convert
 ```
@@ -96,6 +106,11 @@ npm run test
 ```
 
 ### Performance
+
+```bash
+cd test/data && wget https://github.com/redis/redis/archive/refs/tags/7.0.0.zip && unzip 7.0.0.zip
+```
+
 on M1 Macbook Air
 ```bash
 time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3
