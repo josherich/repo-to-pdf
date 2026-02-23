@@ -12,6 +12,7 @@ class HTML2PDF {
     };
 
     this._initialized = false;
+    this._initializing = null;
     this.chrome = null;
   }
 
@@ -19,46 +20,59 @@ class HTML2PDF {
     if (this._initialized) {
       return;
     }
-    this.chrome = await puppeteer.launch(this.puppeteerConfig);
-    this.puppeteerPage = await this.chrome.newPage();
-    await this.puppeteerPage.setJavaScriptEnabled(false)
-    this._initialized = true;
+
+    if (this._initializing) {
+      await this._initializing;
+      return;
+    }
+
+    this._initializing = (async () => {
+      this.chrome = await puppeteer.launch(this.puppeteerConfig);
+      this._initialized = true;
+    })();
+
+    try {
+      await this._initializing;
+    } finally {
+      this._initializing = null;
+    }
   }
 
   async close() {
+    if (this._initializing) {
+      await this._initializing;
+    }
+
     if (this.chrome) {
       await this.chrome.close();
     }
     this.chrome = null;
-    this.puppeteerPage = null;
     this._initialized = false;
   }
 
   async pdf(templatePath, outputPath, options = {}) {
     await this._initializePlugins();
-    const puppeteerPage = this.puppeteerPage;
     const { outline = true } = options;
+    const puppeteerPage = await this.chrome.newPage();
+    await puppeteerPage.setJavaScriptEnabled(false);
 
     try {
       await puppeteerPage.goto('file:' + templatePath, {
-        waitUntil: ['load', 'domcontentloaded'],
+        waitUntil: 'load',
         timeout: 1000 * (pageRenderTimeout || 30)
       })
-    } catch (error) {
-      console.log(error.message);
-      console.error('Fail to load the page.');
-      return error;
+      const pdfOptions = {
+        path: outputPath,
+        displayHeaderFooter: false,
+        printBackground: true,
+        timeout: 3 * 60 * 1000,
+        outline,
+      };
+
+      await puppeteerPage.pdf(pdfOptions);
+    } finally {
+      await puppeteerPage.close();
     }
-
-    const pdfOptions = {
-      path: outputPath,
-      displayHeaderFooter: false,
-      printBackground: true,
-      timeout: 3 * 60 * 1000,
-      outline,
-    };
-
-    await puppeteerPage.pdf(pdfOptions);
   }
 }
 

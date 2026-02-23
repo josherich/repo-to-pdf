@@ -35,6 +35,7 @@ const {generateEbook} =  require('repo-to-pdf')
  * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
  * @property {string} baseUrl - base url of CSS style files
  * @property {boolean} outline - include PDF outline/bookmarks (default true)
+ * @property {number} concurrency - max number of parallel Puppeteer PDF jobs (default auto)
  */
 
 /**
@@ -82,6 +83,10 @@ output format, either pdf, mobi, epub. mobi and epub are generated using calibre
 --no-outline
 disable PDF outline/bookmarks generation (enabled by default)
 # npx repo-to-pdf ../repo --no-outline
+
+-p, --concurrency [num]
+set max parallel Puppeteer PDF render jobs (auto uses up to 4 cores)
+# npx repo-to-pdf ../repo -p 2
 
 -c, --calibre [path]
 path to ebook-convert, for MacOS, try /Applications/calibre.app/Contents/MacOS/ebook-convert; for linux, try /usr/bin/ebook-convert

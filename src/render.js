@@ -1,5 +1,6 @@
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
 const { spawnSync } = require('child_process')
 
 const { getFileNameExt } = require('./utils')
@@ -19,12 +20,48 @@ function reportPerformance(outputFileName, startTs) {
   console.log(`${outputFileName} created in ${ts} seconds.`)
 }
 
+function getPDFConcurrency(totalFiles, options = {}) {
+  if (totalFiles <= 1) {
+    return 1
+  }
+
+  const requested = Number(options.concurrency)
+  if (Number.isInteger(requested) && requested > 0) {
+    return Math.min(totalFiles, requested)
+  }
+
+  const cpuCount = (os.cpus() || []).length || 1
+  // Keep memory usage predictable while still using multiple cores.
+  return Math.min(totalFiles, Math.max(1, Math.min(4, cpuCount)))
+}
+
 async function sequenceRenderPDF(docFiles, options = {}) {
+  const concurrency = getPDFConcurrency(docFiles.length, options)
+
   try {
-    for (let i = 0; i < docFiles.length; i++) {
-      const file = docFiles[i];
-      await html2PDF.pdf(file, file.replace('.html', '.pdf'), options);
+    if (concurrency === 1) {
+      await docFiles.reduce(
+        (promise, file) => promise.then(() => html2PDF.pdf(file, file.replace('.html', '.pdf'), options)),
+        Promise.resolve()
+      )
+      return
     }
+
+    let nextFileIndex = 0
+    const renderNext = async () => {
+      const i = nextFileIndex
+      nextFileIndex += 1
+      if (i >= docFiles.length) {
+        return
+      }
+
+      const file = docFiles[i]
+      await html2PDF.pdf(file, file.replace('.html', '.pdf'), options)
+      await renderNext()
+    }
+
+    const workers = Array.from({ length: concurrency }, () => renderNext())
+    await Promise.all(workers)
   } finally {
     // close chrome so that cli can terminate
     await html2PDF.close()

@@ -18,6 +18,7 @@ program
   .option('-r, --renderer <engine>', '[node|wkhtmltopdf|calibre] use node(puppeteer), wkhtmltopdf or calibre to render pdf', 'node')
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
   .option('--no-outline', 'disable PDF outlines/bookmarks (default enabled)')
+  .option('-p, --concurrency <num>', 'number of parallel Puppeteer PDF render jobs')
   .option('-c, --calibre [path]', 'path to calibre')
   .option('-b, --baseUrl [url]', 'base url of html folder. By default file:// is used.')
   .action(function(input, output) {
@@ -37,6 +38,7 @@ const renderer    = program.renderer
 const calibrePath = program.calibre
 const baseUrl     = program.baseUrl
 const outline     = program.outline
+const concurrency = program.concurrency
 
 generateEbook(inputFolder, outputFile, title, {
   renderer,
@@ -47,6 +49,7 @@ generateEbook(inputFolder, outputFile, title, {
   device,
   baseUrl,
   outline,
+  concurrency,
 }).catch((error) => {
   console.error(error)
   process.exitCode = 1

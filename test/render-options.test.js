@@ -24,4 +24,22 @@ describe('sequenceRenderPDF options', () => {
     await expect(sequenceRenderPDF(['test.html'], { outline: true })).rejects.toThrow('render failed')
     expect(html2PDF.close).toHaveBeenCalledTimes(1)
   })
+
+  it('renders files in parallel when concurrency is set', async () => {
+    let inFlight = 0
+    let maxInFlight = 0
+
+    html2PDF.pdf.mockImplementation(async () => {
+      inFlight += 1
+      maxInFlight = Math.max(maxInFlight, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      inFlight -= 1
+    })
+
+    await sequenceRenderPDF(['1.html', '2.html', '3.html'], { concurrency: 2 })
+
+    expect(maxInFlight).toBeGreaterThan(1)
+    expect(html2PDF.pdf).toHaveBeenCalledTimes(3)
+    expect(html2PDF.close).toHaveBeenCalledTimes(1)
+  })
 })
