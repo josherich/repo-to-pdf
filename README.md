@@ -101,6 +101,11 @@ npm run test
 ```
 
 ### Performance
+
+```bash
+cd test/data && wget https://github.com/redis/redis/archive/refs/tags/7.0.0.zip && unzip 7.0.0.zip
+```
+
 on M1 Macbook Air
 ```bash
 time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3
