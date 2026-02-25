@@ -21,6 +21,7 @@ program
   .option('-p, --concurrency <num>', 'number of parallel Puppeteer PDF render jobs')
   .option('-c, --calibre [path]', 'path to calibre')
   .option('-b, --baseUrl [url]', 'base url of html folder. By default file:// is used.')
+  .option('--custom-css <path>', 'path to a CSS file whose rules are injected after all built-in styles (highest priority)')
   .action(function(input, output) {
     inputFolder = input
     outputFile = output
@@ -37,8 +38,9 @@ const white_list  = program.whitelist
 const renderer    = program.renderer
 const calibrePath = program.calibre
 const baseUrl     = program.baseUrl
-const outline     = program.outline
-const concurrency = program.concurrency
+const outline       = program.outline
+const concurrency   = program.concurrency
+const customCssPath = program.customCss
 
 generateEbook(inputFolder, outputFile, title, {
   renderer,
@@ -50,6 +52,7 @@ generateEbook(inputFolder, outputFile, title, {
   baseUrl,
   outline,
   concurrency,
+  customCssPath,
 }).catch((error) => {
   console.error(error)
   process.exitCode = 1
