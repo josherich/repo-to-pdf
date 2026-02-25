@@ -1,0 +1,59 @@
+/*
+ * print.css
+ *
+ * PDF / print-specific layout rules for repo-to-pdf output.
+ *
+ * Loading order in index.html:
+ *   1. device github-min.css  – base styles
+ *   2. enhancements.css       – file-header / to-top
+ *   3. print.css              – this file (desktop @page + page-break rules)
+ *   4. <style>{{relaxedCSS}} – tablet / mobile @page override (wins over #3)
+ *   5. <style>{{customCSS}}  – user overrides (wins over everything)
+ *
+ * Because tablet/mobile relaxedCSS is injected AFTER this file, their @page
+ * rules correctly override the desktop defaults defined here.
+ */
+
+/* ── Desktop page size & margins ────────────────────────────────────────── */
+
+/*
+ * Puppeteer inherits the browser default when no @page rule is present.
+ * Providing an explicit rule gives consistent, predictable output and makes
+ * the margins easy to customise (override via --custom-css).
+ */
+@page {
+    size: letter;
+    margin: 0.75in 1in;
+}
+
+/* ── Page-break rules ───────────────────────────────────────────────────── */
+
+/*
+ * Keep code blocks intact – never split a <pre> block across two pages.
+ * Long blocks will still overflow a single page, but short/medium ones
+ * (the majority) will land cleanly on one page.
+ */
+pre,
+.hljs {
+    page-break-inside: avoid;
+}
+
+/*
+ * Keep each file-path heading attached to the code block below it.
+ * Combined with the page-break-after:avoid on .file-header in enhancements.css
+ * this prevents orphaned headings at the bottom of a page.
+ */
+.file-header + .to-top + pre,
+.file-header + pre {
+    page-break-before: avoid;
+}
+
+/* ── Hide navigation links in the PDF ──────────────────────────────────── */
+
+/*
+ * "↑ to top" links are useful in the HTML version but meaningless in a PDF
+ * where there is no scrollable viewport.  Hide them so they don't waste space.
+ */
+.to-top {
+    display: none;
+}

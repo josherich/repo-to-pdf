@@ -136,10 +136,15 @@ class RepoBook {
       const lang = this.aliases[ext]
       if (lang) {
         let data = fs.readFileSync(file)
+        const fileId = getCleanFilename(file, this.dir)
+        // Use raw HTML so we can attach CSS classes for visual styling and
+        // page-break control without touching the device-specific CSS files.
+        const fileHeader = `<h4 class="file-header" id="${fileId}">${fileId}</h4>\n` +
+          `<a class="to-top" href="#Contents">&#x2191; to top</a>\n`
         if (ext === 'md') {
-          data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n' + data + '\n'
+          data = fileHeader + data + '\n'
         } else {
-          data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n``` ' + lang + '\n' + data + '\n```\n'
+          data = fileHeader + '``` ' + lang + '\n' + data + '\n```\n'
         }
         contents.push(data)
 

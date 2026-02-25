@@ -12,6 +12,7 @@ const { getFileName, getFileNameExt } = require('./utils')
 function getRemarkableParser() {
   return new Remarkable({
     breaks: true,
+    html: true, // allow raw HTML emitted by repo.js (file-header, to-top links)
     highlight: function(str, lang) {
       if (lang && hljs.getLanguage(lang)) {
         try {
@@ -34,7 +35,7 @@ function getRemarkableParser() {
 
 // => './path/file-1.html'
 function getHTMLFiles(mdString, repoBook, options) {
-  const { pdf_size, white_list, device, baseUrl, protocol, renderer, outputFileName, inputFolder } = options
+  const { pdf_size, white_list, device, baseUrl, protocol, renderer, outputFileName, inputFolder, title, customCss } = options
   const opts = {
     cssPath: {
       desktop: '/css/github-min.css',
@@ -42,6 +43,9 @@ function getHTMLFiles(mdString, repoBook, options) {
       mobile: '/css/github-min-mobile.css',
     },
     highlightCssPath: '/css/vs.css',
+    // desktop: explicit Letter page with generous margins so output is
+    // predictable and easy to override via --custom-css.
+    // tablet/mobile: custom page sizes (override print.css defaults).
     relaxedCSS: {
       desktop: '',
       tablet: `@page {
@@ -72,6 +76,8 @@ function getHTMLFiles(mdString, repoBook, options) {
     .replace('{{cssPath}}', protocol + baseUrl + opts.cssPath[device])
     .replace('{{highlightPath}}', protocol + baseUrl + opts.highlightCssPath)
     .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
+    .replace('{{title}}', title || '')
+    .replace('{{customCSS}}', customCss || '')
     .replace('{{content}}', mdHtml)
 
   if (!repoBook.hasSingleFile()) {
@@ -101,6 +107,15 @@ function checkOptions(options) {
   } else {
     options.protocol = os.name === 'windows' ? 'file:///' : 'file://'
     options.baseUrl = path.resolve(__dirname, '../html5bp')
+  }
+
+  // Load user-supplied custom CSS file if provided
+  if (options.customCssPath) {
+    if (!fs.existsSync(options.customCssPath)) {
+      console.log(`Custom CSS file not found: ${options.customCssPath}`)
+      return false
+    }
+    options.customCss = fs.readFileSync(options.customCssPath, 'utf-8')
   }
 
   if (options.format !== 'pdf' && options.renderer === 'node') {
@@ -163,6 +178,7 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
   options.outputFileName = outputFileName
   options.inputFolder = inputFolder
   options.outputFile = outputFile
+  options.title = title
 
   const outputFiles = []
   while (repoBook.hasNextPart()) {

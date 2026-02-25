@@ -1,36 +1,38 @@
 <!DOCTYPE html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<html>
     <head>
         <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title></title>
-        <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{title}}</title>
 
-        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+        <!-- base styles -->
+        <link rel="stylesheet" href="{{baseUrl}}/css/normalize.css">
+        <link rel="stylesheet" href="{{baseUrl}}/css/main.css">
+
+        <!-- device-specific github markdown styles -->
+        <link rel="stylesheet" href="{{cssPath}}">
+
+        <!-- syntax highlighting -->
+        <link rel="stylesheet" href="{{highlightPath}}">
+
+        <!-- file-header / nav-link enhancements -->
+        <link rel="stylesheet" href="{{baseUrl}}/css/enhancements.css">
+
+        <!-- print / PDF layout (page size for desktop, page-break rules) -->
+        <!-- NOTE: placed before relaxedCSS so tablet/mobile @page overrides take effect -->
+        <link rel="stylesheet" href="{{baseUrl}}/css/print.css">
+
+        <!-- device page-size override (tablet / mobile); empty for desktop -->
         <style>
             {{relaxedCSS}}
         </style>
-        <link rel="stylesheet" href="{{baseUrl}}/css/normalize.css">
-        <link rel="stylesheet" href="{{baseUrl}}/css/main.css">
-        <link rel="stylesheet" href="{{cssPath}}">
-        <link rel="stylesheet" href="{{highlightPath}}">
-        <script src="{{baseUrl}}/js/vendor/modernizr-2.6.2.min.js"></script>
+
+        <!-- user-supplied custom CSS (highest priority) -->
+        <style>
+            {{customCSS}}
+        </style>
     </head>
     <body>
-        <!--[if lt IE 7]>
-            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
-        <![endif]-->
-
-        <!-- Add your site or application content here -->
         {{content}}
-
-            
-        <script src="{{baseUrl}}/js/vendor/jquery-1.10.2.min.js"></script>
-        <script src="{{baseUrl}}/js/plugins.js"></script>
-        <script src="{{baseUrl}}/js/main.js"></script>
     </body>
 </html>
