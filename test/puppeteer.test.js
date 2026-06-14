@@ -42,4 +42,29 @@ describe('puppeteer renderer init', () => {
     await html2PDF.close()
     expect(browser.close).toHaveBeenCalledTimes(1)
   })
+
+  it('passes outline option to page.pdf()', async () => {
+    const puppeteer = require('puppeteer')
+    const page = getPage()
+    const browser = {
+      newPage: jest.fn().mockResolvedValue(page),
+      close: jest.fn().mockResolvedValue(undefined),
+    }
+
+    puppeteer.launch.mockResolvedValue(browser)
+
+    const html2PDF = require('../src/puppeteer')
+
+    await html2PDF.pdf('/tmp/a.html', '/tmp/a.pdf', { outline: true })
+    expect(page.pdf).toHaveBeenCalledWith(
+      expect.objectContaining({ outline: true, path: '/tmp/a.pdf' })
+    )
+
+    await html2PDF.pdf('/tmp/b.html', '/tmp/b.pdf', { outline: false })
+    expect(page.pdf).toHaveBeenCalledWith(
+      expect.objectContaining({ outline: false, path: '/tmp/b.pdf' })
+    )
+
+    await html2PDF.close()
+  })
 })

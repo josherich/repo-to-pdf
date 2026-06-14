@@ -61,3 +61,4 @@ typings/
 .next
 
 test/data
+test/tmp
