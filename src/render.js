@@ -68,13 +68,14 @@ async function sequenceRenderPDF(docFiles, options = {}) {
   }
 }
 
-function renderPDF(docFiles) {
+function renderPDF(docFiles, options = {}) {
   const parallel = 1;
   const total = docFiles.length;
   for (let i = 0; i < total;) {
     let j = 0;
     for (; j < parallel && (i + j) < total; j++) {
-      wkhtml2PDF(docFiles[i + j], docFiles[i + j].replace('.html', '.pdf'));
+      const file = docFiles[i + j];
+      wkhtml2PDF(file, file.replace('.html', '.pdf'), options);
     }
     i += j;
   }

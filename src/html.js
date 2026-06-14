@@ -185,7 +185,7 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
   } else if (renderer === 'node') {
     await sequenceRenderPDF(outputFiles, options)
   } else if (renderer === 'wkhtmltopdf') {
-    renderPDF(outputFiles)
+    renderPDF(outputFiles, options)
   }
 }
 
