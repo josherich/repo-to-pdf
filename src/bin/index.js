@@ -21,7 +21,7 @@ program
   .option('-p, --concurrency <num>', 'number of parallel Puppeteer PDF render jobs')
   .option('-c, --calibre [path]', 'path to calibre')
   .option('-b, --baseUrl [url]', 'base url of html folder. By default file:// is used.')
-  .action(function(input, output) {
+  .action(function (input, output) {
     inputFolder = input
     outputFile = output
   })
