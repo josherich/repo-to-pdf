@@ -24,17 +24,11 @@ describe('puppeteer renderer init', () => {
       close: jest.fn().mockResolvedValue(undefined),
     }
 
-    puppeteer.launch.mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve(browser), 20))
-    )
+    puppeteer.launch.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(browser), 20)))
 
     const html2PDF = require('../src/puppeteer')
 
-    await Promise.all([
-      html2PDF.pdf('/tmp/a.html', '/tmp/a.pdf'),
-      html2PDF.pdf('/tmp/b.html', '/tmp/b.pdf'),
-      html2PDF.pdf('/tmp/c.html', '/tmp/c.pdf'),
-    ])
+    await Promise.all([html2PDF.pdf('/tmp/a.html', '/tmp/a.pdf'), html2PDF.pdf('/tmp/b.html', '/tmp/b.pdf'), html2PDF.pdf('/tmp/c.html', '/tmp/c.pdf')])
 
     expect(puppeteer.launch).toHaveBeenCalledTimes(1)
     expect(browser.newPage).toHaveBeenCalledTimes(3)
@@ -56,14 +50,10 @@ describe('puppeteer renderer init', () => {
     const html2PDF = require('../src/puppeteer')
 
     await html2PDF.pdf('/tmp/a.html', '/tmp/a.pdf', { outline: true })
-    expect(page.pdf).toHaveBeenCalledWith(
-      expect.objectContaining({ outline: true, path: '/tmp/a.pdf' })
-    )
+    expect(page.pdf).toHaveBeenCalledWith(expect.objectContaining({ outline: true, path: '/tmp/a.pdf' }))
 
     await html2PDF.pdf('/tmp/b.html', '/tmp/b.pdf', { outline: false })
-    expect(page.pdf).toHaveBeenCalledWith(
-      expect.objectContaining({ outline: false, path: '/tmp/b.pdf' })
-    )
+    expect(page.pdf).toHaveBeenCalledWith(expect.objectContaining({ outline: false, path: '/tmp/b.pdf' }))
 
     await html2PDF.close()
   })

@@ -22,7 +22,7 @@ npx repo-to-pdf [src/folder]
 ```
 
 ```js
-const {generateEbook} =  require('repo-to-pdf')
+const { generateEbook } = require('repo-to-pdf')
 
 /**
  * @typedef Options
@@ -45,12 +45,7 @@ const {generateEbook} =  require('repo-to-pdf')
  * @param {string} title - title in ebook file
  * @param {Options} options
  */
-generateEbook(
-  './',
-  'test.pdf',
-  'repo-test',
-  {renderer:'node', pdf_size: 3*0.8*1000*1000, format: 'pdf', device: 'desktop', outline: true}
-)
+generateEbook('./', 'test.pdf', 'repo-test', { renderer: 'node', pdf_size: 3 * 0.8 * 1000 * 1000, format: 'pdf', device: 'desktop', outline: true })
 ```
 
 ### Command Line Options
@@ -93,7 +88,9 @@ path to ebook-convert, for MacOS, try /Applications/calibre.app/Contents/MacOS/e
 ```
 
 ##### For tablet, mobile
+
 only supported by the renderer node
+
 ```bash
 npx repo-to-pdf [src/folder] --device tablet
 npx repo-to-pdf [src/folder] --device mobile
@@ -112,6 +109,7 @@ cd test/data && wget https://github.com/redis/redis/archive/refs/tags/7.0.0.zip 
 ```
 
 on M1 Macbook Air
+
 ```bash
 time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3
 2.09s user 0.36s system 2% cpu 1:42.14 total
@@ -121,5 +119,6 @@ time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3 -r wkhtmltopdf
 ```
 
 ### Known issues
+
 - The renderer `wkhtmltopdf` can split lines. It's a known unsolved issue of `wkhtmltopdf`: https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2141, https://github.com/wkhtmltopdf/wkhtmltopdf/issues/1524
 - To properly install puppeteer on Debian, you might need to install required libs: https://github.com/puppeteer/puppeteer/issues/290#issuecomment-322921352 and `libgbm-dev`

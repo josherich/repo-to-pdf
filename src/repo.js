@@ -46,7 +46,7 @@ class RepoBook {
         this.aliases[name] = name
       }
 
-      lang.aliases.map(alias => {
+      lang.aliases.map((alias) => {
         if (this.whiteList) {
           if (this.whiteList.indexOf(alias) > -1) {
             this.aliases[alias] = name.split('.')[0]
@@ -61,7 +61,7 @@ class RepoBook {
 
   registerLanguages() {
     const listPath = path.join(path.dirname(require.resolve('highlight.js')), 'languages')
-    fs.readdirSync(listPath).map(f => {
+    fs.readdirSync(listPath).map((f) => {
       this.registerLanguage(f, require(path.join(listPath, f)))
       return null
     })
@@ -70,15 +70,15 @@ class RepoBook {
   readDir(dir, allFiles = [], level = 0) {
     const files = fs
       .readdirSync(dir)
-      .map(f => path.join(dir, f))
-      .filter(f => fs.lstatSync(f).size / 1000 < 2000) // smaller than 2m
-      .map(f => [f, level])
+      .map((f) => path.join(dir, f))
+      .filter((f) => fs.lstatSync(f).size / 1000 < 2000) // smaller than 2m
+      .map((f) => [f, level])
 
     level > 0 ? allFiles.push([dir, level, true]) : null // push folder name
 
-    files.map(pair => {
+    files.map((pair) => {
       const f = pair[0]
-      const blackListHit = this.blackList.filter(e => !!f.match(e)).length > 0
+      const blackListHit = this.blackList.filter((e) => !!f.match(e)).length > 0
       if (!fs.lstatSync(f).isDirectory()) {
         allFiles.push([f, level + 1, false])
       } else {
@@ -93,13 +93,13 @@ class RepoBook {
 
   renderIndex(files) {
     return files
-      .filter(f => {
+      .filter((f) => {
         const fileName = getFileName(f[0])
         const ext = path.extname(fileName).slice(1)
         const isFolder = fs.lstatSync(f[0]).isDirectory()
         return fileName[0] !== '.' && (ext in this.aliases || isFolder)
       })
-      .map(f => {
+      .map((f) => {
         const indexName = getCleanFilename(f[0], this.dir, f[1]),
           anchorName = getCleanFilename(f[0], this.dir),
           left_pad = f[2] ? '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(f[1]) : '',

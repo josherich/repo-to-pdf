@@ -3,3 +3,4 @@ package-lock.json
 .github/
 .vscode/
 html5bp/
+test/data/

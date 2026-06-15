@@ -28,16 +28,16 @@ program
 
 program.parse(process.argv)
 
-const PDF_SIZE    = getSizeInByte(10) // 10 Mb
-const title       = program.title || inputFolder
-const device      = program.device
-const pdf_size    = program.size ? getSizeInByte(program.size) : PDF_SIZE
-const format      = program.format
-const white_list  = program.whitelist
-const renderer    = program.renderer
+const PDF_SIZE = getSizeInByte(10) // 10 Mb
+const title = program.title || inputFolder
+const device = program.device
+const pdf_size = program.size ? getSizeInByte(program.size) : PDF_SIZE
+const format = program.format
+const white_list = program.whitelist
+const renderer = program.renderer
 const calibrePath = program.calibre
-const baseUrl     = program.baseUrl
-const outline     = program.outline
+const baseUrl = program.baseUrl
+const outline = program.outline
 const concurrency = program.concurrency
 
 generateEbook(inputFolder, outputFile, title, {

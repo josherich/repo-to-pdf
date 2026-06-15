@@ -4,13 +4,18 @@ const os = require('os')
 const { spawnSync } = require('child_process')
 
 const { getFileNameExt } = require('./utils')
-const html2PDF = require('./puppeteer');
-const wkhtml2PDF = require('./wkhtmltopdf');
+const html2PDF = require('./puppeteer')
+const wkhtml2PDF = require('./wkhtmltopdf')
 
 let startTs
 
 function removeRelaxedjsTempFiles(outputFileName) {
-  const prefix = outputFileName.split('.').reverse().slice(1).reverse().join('.')
+  const prefix = outputFileName
+    .split('.')
+    .reverse()
+    .slice(1)
+    .reverse()
+    .join('.')
   const html = spawnSync('rm', [`${prefix}.html`])
   const htm = spawnSync('rm', [`${prefix}_temp.htm`])
 }
@@ -40,10 +45,7 @@ async function sequenceRenderPDF(docFiles, options = {}) {
 
   try {
     if (concurrency === 1) {
-      await docFiles.reduce(
-        (promise, file) => promise.then(() => html2PDF.pdf(file, file.replace('.html', '.pdf'), options)),
-        Promise.resolve()
-      )
+      await docFiles.reduce((promise, file) => promise.then(() => html2PDF.pdf(file, file.replace('.html', '.pdf'), options)), Promise.resolve())
       return
     }
 
@@ -69,15 +71,16 @@ async function sequenceRenderPDF(docFiles, options = {}) {
 }
 
 function renderPDF(docFiles, options = {}) {
-  const parallel = 1;
-  const total = docFiles.length;
-  for (let i = 0; i < total;) {
-    let j = 0;
-    for (; j < parallel && (i + j) < total; j++) {
-      const file = docFiles[i + j];
-      wkhtml2PDF(file, file.replace('.html', '.pdf'), options);
+  const parallel = 1
+  const total = docFiles.length
+  let i = 0
+  while (i < total) {
+    let j = 0
+    for (; j < parallel && i + j < total; j++) {
+      const file = docFiles[i + j]
+      wkhtml2PDF(file, file.replace('.html', '.pdf'), options)
     }
-    i += j;
+    i += j
   }
 }
 
@@ -122,7 +125,7 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
   }
 
   const args = {
-    calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])]
+    calibre: [calibrePath, [docFile, formatFile].concat(formatArgs[format])],
   }
 
   if (renderer === 'calibre') {
@@ -135,7 +138,7 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
   const res = spawnSync(cmd[0], cmd[1])
   if (res.error) {
     console.log(`Some error happened when creating ${formatFile}.`)
-    console.error(res.error);
+    console.error(res.error)
     return
   }
 

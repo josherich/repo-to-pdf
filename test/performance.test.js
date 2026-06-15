@@ -35,7 +35,7 @@ describe('render', () => {
         format: 'pdf',
         device: 'desktop',
         baseUrl,
-        protocol
+        protocol,
       })
       // 6 pdfs with a size limit of 3mb, redis-7.0.0
       expect(fs.existsSync('redis-1.pdf')).toBe(true)
