@@ -100,8 +100,10 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
   const docFile = path.resolve(process.cwd(), docFiles[i])
   const formatFile = getFileNameExt(docFile, format)
 
+  const calibreCommonArgs = ['--allow-local-files-outside-root']
+
   const formatArgs = {
-    pdf: [
+    pdf: calibreCommonArgs.concat([
       '--pdf-add-toc',
       '--paper-size',
       'a4',
@@ -119,9 +121,9 @@ function sequenceRenderEbook(docFiles, options, i = 0) {
       '2',
       '--page-breaks-before',
       '/',
-    ],
-    mobi: ['--mobi-toc-at-start', '--output-profile', 'kindle_dx'],
-    epub: ['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000'],
+    ]),
+    mobi: calibreCommonArgs.concat(['--mobi-toc-at-start', '--output-profile', 'kindle_dx']),
+    epub: calibreCommonArgs.concat(['--epub-inline-toc', '--output-profile', 'ipad3', '--flow-size', '1000']),
   }
 
   const args = {
