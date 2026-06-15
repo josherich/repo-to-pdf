@@ -9,7 +9,6 @@
 - add integration tests for PDF outline/bookmarks (#27)
 - enable wkhtmltopdf outline generation
 
-
 ## v0.1.9(2026-02-22)
 
 - upgrade puppeteer to get outline; add concurrency to puppeteer (#28)

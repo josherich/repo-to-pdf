@@ -10,12 +10,7 @@ const wkhtml2PDF = require('./wkhtmltopdf')
 let startTs
 
 function removeRelaxedjsTempFiles(outputFileName) {
-  const prefix = outputFileName
-    .split('.')
-    .reverse()
-    .slice(1)
-    .reverse()
-    .join('.')
+  const prefix = outputFileName.split('.').reverse().slice(1).reverse().join('.')
   const html = spawnSync('rm', [`${prefix}.html`])
   const htm = spawnSync('rm', [`${prefix}_temp.htm`])
 }

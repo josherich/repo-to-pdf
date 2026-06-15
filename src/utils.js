@@ -18,10 +18,7 @@ function getCleanFilename(filename, folder, depth = 0) {
     depth -= 1
   }
   if (depth > 0) {
-    return filename
-      .split('/')
-      .slice(depth)
-      .join('/')
+    return filename.split('/').slice(depth).join('/')
   } else {
     return filename
   }

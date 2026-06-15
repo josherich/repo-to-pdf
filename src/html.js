@@ -12,10 +12,10 @@ const { getFileName, getFileNameExt } = require('./utils')
 function getRemarkableParser() {
   return new Remarkable({
     breaks: true,
-    highlight: function(str, lang) {
+    highlight: function (str, lang) {
       if (lang && hljs.getLanguage(lang)) {
         try {
-          return hljs.highlight(lang, str).value
+          return hljs.highlight(str, { language: lang }).value
         } catch (err) {}
       }
 
@@ -25,8 +25,8 @@ function getRemarkableParser() {
 
       return ''
     },
-  }).use(function(remarkable) {
-    remarkable.renderer.rules.heading_open = function(tokens, idx) {
+  }).use(function (remarkable) {
+    remarkable.renderer.rules.heading_open = function (tokens, idx) {
       return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>'
     }
   })
