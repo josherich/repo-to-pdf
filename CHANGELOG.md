@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.11(2026-06-15)
+
+- enable local file access for calibre renderer
+
 ## v0.1.10(2026-06-14)
 
 - add integration tests for PDF outline/bookmarks (#27)
