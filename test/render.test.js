@@ -5,11 +5,11 @@ const { spawnSync } = require('child_process')
 jest.setTimeout(2 * 60 * 1000)
 
 jest.mock('../src/puppeteer', () => {
-  const fs = require('fs')
+  const { writeMockPdf } = require('./utils/write-mock-pdf')
 
   return {
-    pdf: jest.fn(async (templatePath, outputPath) => {
-      fs.writeFileSync(outputPath, `mock-pdf:${templatePath}`)
+    pdf: jest.fn(async (_templatePath, outputPath) => {
+      writeMockPdf(outputPath)
     }),
     close: jest.fn(),
   }
@@ -17,6 +17,7 @@ jest.mock('../src/puppeteer', () => {
 
 const { generateEbook } = require('../src/html')
 const { getSizeInByte } = require('../src/utils')
+const { isPdf } = require('./utils/write-mock-pdf')
 
 const PDF_SIZE = getSizeInByte(5) // 10 Mb
 const baseUrl = path.resolve(__dirname, '../html5bp')
@@ -33,7 +34,7 @@ describe('render', () => {
       device: 'desktop',
       baseUrl,
     })
-    expect(fs.existsSync(output)).toBe(true)
+    expect(isPdf(output)).toBe(true)
   })
 
   it('with mobi', async () => {
@@ -78,7 +79,7 @@ describe('render', () => {
       device: 'mobile',
       baseUrl,
     })
-    expect(fs.existsSync(output)).toBe(true)
+    expect(isPdf(output)).toBe(true)
   })
 
   it('with tablet pdf', async () => {
@@ -92,7 +93,7 @@ describe('render', () => {
       device: 'tablet',
       baseUrl,
     })
-    expect(fs.existsSync(output)).toBe(true)
+    expect(isPdf(output)).toBe(true)
   })
 
   it('with current folder pdf', async () => {
@@ -106,7 +107,7 @@ describe('render', () => {
       device: 'desktop',
       baseUrl,
     })
-    expect(fs.existsSync(output)).toBe(true)
+    expect(isPdf(output)).toBe(true)
   })
 
   it('with white list', async () => {
@@ -120,6 +121,6 @@ describe('render', () => {
       device: 'desktop',
       baseUrl,
     })
-    expect(fs.existsSync(output)).toBe(true)
+    expect(isPdf(output)).toBe(true)
   })
 })

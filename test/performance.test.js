@@ -3,11 +3,11 @@ const path = require('path')
 const os = require('os')
 
 jest.mock('../src/puppeteer', () => {
-  const fs = require('fs')
+  const { writeMockPdf } = require('./utils/write-mock-pdf')
 
   return {
-    pdf: jest.fn(async (templatePath, outputPath) => {
-      fs.writeFileSync(outputPath, `mock-pdf:${templatePath}`)
+    pdf: jest.fn(async (_templatePath, outputPath) => {
+      writeMockPdf(outputPath)
     }),
     close: jest.fn(),
   }
@@ -15,6 +15,7 @@ jest.mock('../src/puppeteer', () => {
 
 const { generateEbook } = require('../src/html')
 const { getSizeInByte } = require('../src/utils')
+const { isPdf } = require('./utils/write-mock-pdf')
 
 const PDF_SIZE = getSizeInByte(3)
 const protocol = os.name === 'windows' ? 'file:///' : 'file://'
@@ -38,8 +39,8 @@ describe('render', () => {
         protocol,
       })
       // 6 pdfs with a size limit of 3mb, redis-7.0.0
-      expect(fs.existsSync('redis-1.pdf')).toBe(true)
-      expect(fs.existsSync('redis-6.pdf')).toBe(true)
+      expect(isPdf('redis-1.pdf')).toBe(true)
+      expect(isPdf('redis-6.pdf')).toBe(true)
     } else {
       console.log('skip because source folder is not specified.')
     }

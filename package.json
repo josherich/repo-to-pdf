@@ -7,7 +7,8 @@
     "repo-to-pdf": "src/bin/index.js"
   },
   "scripts": {
-    "test": "jest --forceExit",
+    "test": "npm run clean:test && jest --forceExit; status=$?; npm run clean:test; exit $status",
+    "clean:test": "rm -f self*.html self*.pdf self*.mobi self*.epub redis*.html redis*.pdf redis*.mobi redis*.epub",
     "format": "eslint \"**/*.js\" --fix && prettier \"**/*.{js,json,md}\" --write",
     "format:staged": "eslint \"**/*.js\" --fix && pretty-quick --staged --verbose --pattern \"**/*.{js,json,md}\"",
     "format:check": "eslint \"**/*.js\" && prettier --check \"**/*.{js,json,md}\""
