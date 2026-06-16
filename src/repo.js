@@ -36,7 +36,7 @@ class RepoBook {
 
   registerLanguage(name, language) {
     const lang = language(hljs)
-    if (lang && lang.aliases) {
+    if (lang) {
       name = name.split('.')[0]
       if (this.whiteList) {
         if (this.whiteList.indexOf(name) > -1) {
@@ -46,16 +46,18 @@ class RepoBook {
         this.aliases[name] = name
       }
 
-      lang.aliases.map((alias) => {
-        if (this.whiteList) {
-          if (this.whiteList.indexOf(alias) > -1) {
+      if (lang.aliases) {
+        lang.aliases.map((alias) => {
+          if (this.whiteList) {
+            if (this.whiteList.indexOf(alias) > -1) {
+              this.aliases[alias] = name.split('.')[0]
+            }
+          } else {
             this.aliases[alias] = name.split('.')[0]
           }
-        } else {
-          this.aliases[alias] = name.split('.')[0]
-        }
-        return null
-      })
+          return null
+        })
+      }
     }
   }
 
