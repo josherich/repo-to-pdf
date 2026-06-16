@@ -28,6 +28,9 @@
     "url": "https://github.com/josherich/repo-to-pdf/issues"
   },
   "homepage": "https://github.com/josherich/repo-to-pdf#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "commander": "^4.0.0",
     "highlight.js": "^10.7.3",
