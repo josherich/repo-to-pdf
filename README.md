@@ -27,7 +27,7 @@ const { generateEbook } = require('repo-to-pdf')
 /**
  * @typedef Options
  * @type {object}
- * @property {string} renderer - [node|calibre|wkhtmltopdf] can be either node, calibre and wkhtmltopdf
+ * @property {string} renderer - [native|node|calibre|wkhtmltopdf] node (puppeteer, default), native (built-in, dependency-free), calibre or wkhtmltopdf
  * @property {string} calibrePath - path of calibre's ebook-convert
  * @property {string} pdf_size - pdf size limit, in bytes
  * @property {string} white_list - list of file extensions to be included, separate by ','
@@ -48,6 +48,23 @@ const { generateEbook } = require('repo-to-pdf')
 generateEbook('./', 'test.pdf', 'repo-test', { renderer: 'node', pdf_size: 3 * 0.8 * 1000 * 1000, format: 'pdf', device: 'desktop', outline: true })
 ```
 
+### Renderers
+
+| renderer      | engine                               | deps               | speed     | output          |
+| ------------- | ------------------------------------ | ------------------ | --------- | --------------- |
+| `node`        | puppeteer (headless Chrome, default) | puppeteer + Chrome | slow      | pdf             |
+| `native`      | built-in PDF writer                  | none               | very fast | pdf             |
+| `wkhtmltopdf` | wkhtmltopdf binary                   | wkhtmltopdf        | medium    | pdf             |
+| `calibre`     | calibre `ebook-convert`              | calibre            | medium    | pdf, mobi, epub |
+
+The `native` renderer reads the source code and writes a PDF directly, with no
+external dependencies or headless browser. It imitates the GitHub/HTML styling,
+applies `highlight.js` syntax highlighting, embeds PDF bookmarks (table of
+contents) and only references the built-in PDF fonts so output files stay
+small. Because it relies on the standard fonts, glyphs outside WinAnsi (e.g.
+CJK) are substituted with a placeholder; use the `node` renderer if you need
+full Unicode coverage.
+
 ### Command Line Options
 
 ```bash
@@ -67,8 +84,10 @@ file format white list, split by ","
 pdf file size limit, in MB, default 10 MB
 # npx repo-to-pdf ../repo -s 10
 
--r, --renderer [node|calibre|wkhtmltopdf]
-use either node(relaxedjs) or calibre to render ebook, node outputs pdf, calibre outputs pdf, mobi, epub
+-r, --renderer [native|node|calibre|wkhtmltopdf]
+choose the render engine (default node). node uses puppeteer; native is the
+built-in dependency-free PDF generator; calibre outputs pdf, mobi, epub
+# npx repo-to-pdf ../repo -r native
 # npx repo-to-pdf ../repo -r calibre
 
 -f, --format [pdf|mobi|epub]
@@ -111,8 +130,13 @@ cd test/data && wget https://github.com/redis/redis/archive/refs/tags/7.0.0.zip 
 on M1 Macbook Air
 
 ```bash
+# node (default): puppeteer / headless Chrome
 time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3
 2.09s user 0.36s system 2% cpu 1:42.14 total
+
+# native: no headless browser, single process, much faster and lighter
+time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3 -r native
+# a few seconds, minimal CPU
 
 time npx repo-to-pdf ./test/data/redis-7.0.0/src -s 3 -r wkhtmltopdf
 43.78s user 0.84s system 93% cpu 47.787 total
