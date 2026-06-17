@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer')
-const pageRenderTimeout = 10
+
+const DEFAULT_RENDER_TIMEOUT_SECONDS = 120
+const DEFAULT_PDF_TIMEOUT_SECONDS = 3 * 60
 
 class HTML2PDF {
   constructor() {
@@ -56,13 +58,13 @@ class HTML2PDF {
     try {
       await puppeteerPage.goto('file:' + templatePath, {
         waitUntil: 'load',
-        timeout: 1000 * (pageRenderTimeout || 30),
+        timeout: DEFAULT_RENDER_TIMEOUT_SECONDS * 1000,
       })
       const pdfOptions = {
         path: outputPath,
         displayHeaderFooter: false,
         printBackground: true,
-        timeout: 3 * 60 * 1000,
+        timeout: DEFAULT_PDF_TIMEOUT_SECONDS * 1000,
         outline,
       }
 
