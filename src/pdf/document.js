@@ -2,9 +2,40 @@ const zlib = require('zlib')
 
 const { FONT_NAMES, FONT_KEYS, encodePdfString } = require('./fonts')
 
+function randomTag() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let out = ''
+  for (let i = 0; i < 6; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return out
+}
+
+function buildToUnicodeCmap() {
+  const lines = [
+    '/CIDInit /ProcSet findresource begin',
+    '12 dict begin',
+    'begincmap',
+    '/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def',
+    '/CMapName /Adobe-Identity-UCS def',
+    '/CMapType 2 def',
+    '1 begincodespacerange',
+    '<0000> <FFFF>',
+    'endcodespacerange',
+    '1 beginbfrange',
+    '<0000> <FFFF> <0000>',
+    'endbfrange',
+    'endcmap',
+    'CMapName currentdict /CMap defineresource pop',
+    'end',
+    'end',
+  ]
+  return Buffer.from(lines.join('\n'), 'latin1')
+}
+
 // Minimal PDF writer. Produces a single-file PDF with the base-14 fonts,
-// FlateDecode-compressed content streams and an optional document outline
-// (bookmarks). No external dependencies are used.
+// optional embedded Unicode fonts, FlateDecode-compressed content streams and
+// an optional document outline (bookmarks). No external dependencies are used.
 class PDFDocument {
   constructor({ width = 612, height = 792 } = {}) {
     this.width = width
@@ -13,6 +44,7 @@ class PDFDocument {
     this.pages = [] // { pageId, contentId }
 
     this.fontIds = {}
+    this.embeddedFontIds = {}
     this._createFonts()
     this._resourcesId = this._alloc()
   }
@@ -34,11 +66,60 @@ class PDFDocument {
     }
   }
 
+  // Register an embedded TrueType subset as a Type0 CID font with Identity-H.
+  registerType0Font(role, subset, resourceKey, codePoints = []) {
+    const tag = randomTag()
+    const baseFont = `${tag}+${subset.family.replace(/\s+/g, '')}`
+    const fontFileId = this._alloc()
+    const descriptorId = this._alloc()
+    const cidFontId = this._alloc()
+    const type0Id = this._alloc()
+    const toUnicodeId = this._alloc()
+
+    const fontStream = Buffer.concat([
+      Buffer.from(`<< /Length ${subset.buffer.length} /Length1 ${subset.buffer.length} >>\nstream\n`, 'latin1'),
+      subset.buffer,
+      Buffer.from('\nendstream', 'latin1'),
+    ])
+    this._set(fontFileId, fontStream)
+
+    const bbox = `[-1000 -500 3000 2000]`
+    const descriptor = `<< /Type /FontDescriptor /FontName /${baseFont} /Flags 32 /FontBBox ${bbox} ` + `/ItalicAngle 0 /Ascent 1000 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 ${fontFileId} 0 R >>`
+    this._set(descriptorId, descriptor)
+
+    const wParts = (codePoints.length ? codePoints : subset.widths.map((_, i) => i))
+      .sort((a, b) => a - b)
+      .map((cp, idx) => {
+        const width = codePoints.length ? subset.widthsByCodePoint.get(cp) : subset.widths[idx]
+        return `${cp} [${width || 0}]`
+      })
+      .join(' ')
+    const defaultWidth = subset.widths[0] || 1000
+    const cidFont = `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${baseFont} ` + `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> ` + `/FontDescriptor ${descriptorId} 0 R /DW ${Math.round(defaultWidth * 0.5)} ` + `/W [${wParts}] /CIDToGIDMap /Identity >>`
+    this._set(cidFontId, cidFont)
+
+    const toUnicode = Buffer.concat([
+      Buffer.from(`<< /Length ${buildToUnicodeCmap().length} >>\nstream\n`, 'latin1'),
+      buildToUnicodeCmap(),
+      Buffer.from('\nendstream', 'latin1'),
+    ])
+    this._set(toUnicodeId, toUnicode)
+
+    const type0 = `<< /Type /Font /Subtype /Type0 /BaseFont /${baseFont} /Encoding /Identity-H ` + `/DescendantFonts [${cidFontId} 0 R] /ToUnicode ${toUnicodeId} 0 R >>`
+    this._set(type0Id, type0)
+    this.embeddedFontIds[resourceKey] = type0Id
+    return type0Id
+  }
+
   _resourcesBody() {
     const fontEntries = Object.keys(FONT_KEYS)
       .map((key) => `/${FONT_KEYS[key]} ${this.fontIds[key]} 0 R`)
       .join(' ')
-    return `<< /Font << ${fontEntries} >> >>`
+    const embeddedEntries = Object.entries(this.embeddedFontIds)
+      .map(([key, id]) => `/${key} ${id} 0 R`)
+      .join(' ')
+    const allFonts = embeddedEntries ? `${fontEntries} ${embeddedEntries}` : fontEntries
+    return `<< /Font << ${allFonts} >> >>`
   }
 
   // Add a page whose content stream is the given (uncompressed) string.

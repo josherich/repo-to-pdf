@@ -124,4 +124,19 @@ describe('layout', () => {
     expect(buffer.slice(0, 5).toString('latin1')).toBe('%PDF-')
     expect(buffer.toString('latin1').trimEnd().endsWith('%%EOF')).toBe(true)
   })
+
+  it('embeds CJK and Unicode text with Identity-H fonts', () => {
+    const zlib = require('zlib')
+    const buffer = renderMarkdownToPdf('CJK: 你好，世界。Special: café — €\n')
+    const pdf = buffer.toString('latin1')
+    expect(pdf).toContain('/Subtype /Type0')
+    expect(pdf).toContain('/UF7')
+
+    const streamStart = buffer.indexOf('stream\n') + 7
+    const streamEnd = buffer.indexOf('\nendstream', streamStart)
+    const content = zlib.inflateSync(buffer.slice(streamStart, streamEnd)).toString('latin1')
+    expect(content).toContain('<4F60>')
+    expect(content).toContain('<597D>')
+    expect(content).not.toMatch(/Tm \(\?+\) Tj/)
+  })
 })
