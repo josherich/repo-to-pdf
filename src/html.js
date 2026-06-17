@@ -140,7 +140,7 @@ function checkOptions(options) {
 /**
  * @typedef Options
  * @type {object}
- * @property {string} renderer - [native|node|calibre|wkhtmltopdf] native (built-in, dependency-free, default), node (puppeteer), calibre or wkhtmltopdf
+ * @property {string} renderer - [native|node|calibre|wkhtmltopdf] node (puppeteer, default), native (built-in, dependency-free), calibre or wkhtmltopdf
  * @property {string} calibrePath - path of calibre's ebook-convert
  * @property {string} pdf_size - pdf size limit, in bytes
  * @property {string} white_list - list of file extensions to be included, separate by ','
@@ -158,7 +158,7 @@ function checkOptions(options) {
  * @param {string} title - title in ebook file
  * @param {Options} options
  */
-async function generateEbook(inputFolder, outputFile, title, options = { renderer: 'native' }) {
+async function generateEbook(inputFolder, outputFile, title, options = { renderer: 'node' }) {
   if (!checkOptions(options)) {
     return
   }

@@ -15,7 +15,7 @@ program
   .option('-t, --title [name]', 'title')
   .option('-w, --whitelist [wlist]', 'file format white list, split by ,')
   .option('-s, --size [size]', 'pdf file size limit, in Mb')
-  .option('-r, --renderer <engine>', '[native|node|wkhtmltopdf|calibre] native(built-in, no deps), node(puppeteer), wkhtmltopdf or calibre', 'native')
+  .option('-r, --renderer <engine>', '[native|node|wkhtmltopdf|calibre] native(built-in, no deps), node(puppeteer, default), wkhtmltopdf or calibre', 'node')
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
   .option('--no-outline', 'disable PDF outlines/bookmarks (default enabled)')
   .option('-p, --concurrency <num>', 'number of parallel Puppeteer PDF render jobs')
