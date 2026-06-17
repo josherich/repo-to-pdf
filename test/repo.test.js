@@ -21,6 +21,35 @@ describe('RepoBook', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
+  it('only renders text files with languages supported by highlight.js', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-to-pdf-'))
+    const srcDir = path.join(tmpDir, 'src')
+    const assetsDir = path.join(tmpDir, 'assets')
+    fs.mkdirSync(srcDir)
+    fs.mkdirSync(assetsDir)
+
+    fs.writeFileSync(path.join(srcDir, 'app.js'), 'console.log("hello")\n')
+    fs.writeFileSync(path.join(srcDir, 'notes.txt'), 'plain project notes\n')
+    fs.writeFileSync(path.join(srcDir, 'Dockerfile'), 'FROM node:22\n')
+    fs.writeFileSync(path.join(srcDir, 'data.csv'), 'name,value\nrepo,1\n')
+    fs.writeFileSync(path.join(assetsDir, 'icon.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00]))
+
+    const repoBook = new RepoBook(tmpDir, 'test', Number.MAX_SAFE_INTEGER, null)
+    const output = repoBook.render()
+
+    expect(output).toContain('app.js')
+    expect(output).toContain('``` javascript')
+    expect(output).toContain('notes.txt')
+    expect(output).toContain('``` plaintext')
+    expect(output).toContain('Dockerfile')
+    expect(output).toContain('``` dockerfile')
+    expect(output).not.toContain('data.csv')
+    expect(output).not.toContain('icon.png')
+    expect(output).not.toContain('/assets')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
   it('renders example sources with broad language, markdown, long line, and unicode coverage', () => {
     const examplesDir = path.join(__dirname, 'examples')
 

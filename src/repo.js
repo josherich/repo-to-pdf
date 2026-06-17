@@ -4,6 +4,8 @@ const hljs = require('highlight.js')
 const { pathToFileURL } = require('url')
 const { getFileName, getCleanFilename } = require('./utils')
 
+const MAX_FILE_SIZE_BYTES = 2 * 1000 * 1000
+
 function isExternalImagePath(src) {
   return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(src)
 }
@@ -54,7 +56,12 @@ class RepoBook {
     this.pdf_size = pdf_size
 
     this.blackList = ['node_modules', 'vendor']
-    this.whiteList = white_list ? white_list.split(',') : null
+    this.whiteList = white_list
+      ? white_list
+          .split(',')
+          .map((entry) => entry.trim().toLowerCase())
+          .filter(Boolean)
+      : null
 
     this.aliases = {}
     this.byteOffset = 0
@@ -63,8 +70,8 @@ class RepoBook {
     this.done = false
     this.dir = dir
 
-    this.files = this.readDir(dir)
     this.registerLanguages()
+    this.files = this.readDir(dir)
   }
 
   hasNextPart() {
@@ -114,37 +121,77 @@ class RepoBook {
     })
   }
 
+  getLanguageForFile(file) {
+    const stat = fs.lstatSync(file)
+    if (!stat.isFile() || stat.size > MAX_FILE_SIZE_BYTES) {
+      return null
+    }
+
+    const fileName = getFileName(file)
+    if (fileName[0] === '.') {
+      return null
+    }
+
+    const ext = path.extname(fileName).slice(1).toLowerCase()
+    const basename = path.basename(fileName, path.extname(fileName)).toLowerCase()
+    const lang = this.aliases[ext] || this.aliases[fileName.toLowerCase()] || this.aliases[basename]
+
+    if (!lang) {
+      return null
+    }
+
+    return lang
+  }
+
   readDir(dir, allFiles = [], level = 0) {
-    const files = fs
-      .readdirSync(dir)
-      .map((f) => path.join(dir, f))
-      .filter((f) => fs.lstatSync(f).size / 1000 < 2000) // smaller than 2m
-      .map((f) => [f, level])
+    const entries = []
 
-    level > 0 ? allFiles.push([dir, level, true]) : null // push folder name
-
-    files.map((pair) => {
-      const f = pair[0]
+    fs.readdirSync(dir).map((name) => {
+      const f = path.join(dir, name)
+      const stat = fs.lstatSync(f)
       const blackListHit = this.blackList.filter((e) => !!f.match(e)).length > 0
-      if (!fs.lstatSync(f).isDirectory()) {
-        allFiles.push([f, level + 1, false])
-      } else {
-        path.basename(f)[0] !== '.' && // ignore hidden folders
-          blackListHit === false &&
-          this.readDir(f, allFiles, level + 1)
+
+      if (stat.isDirectory()) {
+        if (path.basename(f)[0] !== '.' && blackListHit === false) {
+          const nestedEntries = this.readDir(f, [], level + 1)
+          if (nestedEntries.length > 0) {
+            entries.push([f, level + 1, true])
+            entries.push(...nestedEntries)
+          }
+        }
+      } else if (this.getLanguageForFile(f)) {
+        entries.push([f, level + 1, false])
       }
+
       return null
     })
+
+    if (level === 0) {
+      allFiles.push(...entries)
+    } else {
+      entries.map((entry) => {
+        allFiles.push(entry)
+        return null
+      })
+    }
+
     return allFiles
+  }
+
+  isRenderableFile(file) {
+    return this.getLanguageForFile(file) !== null
+  }
+
+  getLanguageForRenderableFile(file) {
+    return this.getLanguageForFile(file)
   }
 
   renderIndex(files) {
     return files
       .filter((f) => {
         const fileName = getFileName(f[0])
-        const ext = path.extname(fileName).slice(1)
         const isFolder = fs.lstatSync(f[0]).isDirectory()
-        return fileName[0] !== '.' && (ext in this.aliases || isFolder)
+        return fileName[0] !== '.' && (this.isRenderableFile(f[0]) || isFolder)
       })
       .map((f) => {
         const indexName = getCleanFilename(f[0], this.dir, f[1]),
@@ -165,26 +212,15 @@ class RepoBook {
     for (; i < files.length; i++) {
       const file = files[i][0]
 
-      const fileName = getFileName(file)
       if (fs.statSync(file).isDirectory()) {
         continue
       }
 
-      const ext = path.extname(fileName).slice(1)
-
-      if (ext.length === 0) {
-        continue
-      }
-
-      if (fileName[0] === '.') {
-        continue
-      }
-
-      const lang = this.aliases[ext]
+      const lang = this.getLanguageForRenderableFile(file)
       if (lang) {
-        let data = fs.readFileSync(file)
-        if (ext === 'md') {
-          data = resolveMarkdownImageReferences(data.toString(), file)
+        let data = fs.readFileSync(file, 'utf8')
+        if (lang === 'markdown') {
+          data = resolveMarkdownImageReferences(data, file)
           data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n' + data + '\n'
         } else {
           data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n``` ' + lang + '\n' + data + '\n```\n'
