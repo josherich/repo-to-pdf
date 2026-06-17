@@ -5,6 +5,8 @@ const path = require('path')
 const { openFontFile, glyphForCodePoint, advanceWidth, collectGlyphs, subsetFont } = require('./ttf')
 const { toWinAnsiByte, charWidth: winAnsiCharWidth } = require('./fonts')
 
+const BUNDLED_CJK_FONT = path.join(__dirname, '../../assets/fonts/CJKFallback.ttf')
+
 function buildSubset(font, codePoints) {
   const glyphs = collectGlyphs(font, codePoints)
   const subset = subsetFont(font, glyphs)
@@ -77,16 +79,36 @@ const SYSTEM_FONT_CANDIDATES = {
     ],
   },
   darwin: {
-    sans: ['/System/Library/Fonts/Supplemental/Arial.ttf', '/Library/Fonts/Arial.ttf'],
-    sansBold: ['/System/Library/Fonts/Supplemental/Arial Bold.ttf', '/Library/Fonts/Arial Bold.ttf'],
-    sansItalic: ['/System/Library/Fonts/Supplemental/Arial Italic.ttf', '/Library/Fonts/Arial Italic.ttf'],
-    sansBoldItalic: ['/System/Library/Fonts/Supplemental/Arial Bold Italic.ttf', '/Library/Fonts/Arial Bold Italic.ttf'],
-    mono: ['/System/Library/Fonts/Menlo.ttc', '/System/Library/Fonts/Supplemental/Courier New.ttf'],
+    sans: [
+      '/System/Library/Fonts/Supplemental/Arial.ttf',
+      '/Library/Fonts/Arial.ttf',
+      '/System/Library/Fonts/Helvetica.ttc',
+    ],
+    sansBold: [
+      '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+      '/Library/Fonts/Arial Bold.ttf',
+    ],
+    sansItalic: [
+      '/System/Library/Fonts/Supplemental/Arial Italic.ttf',
+      '/Library/Fonts/Arial Italic.ttf',
+    ],
+    sansBoldItalic: [
+      '/System/Library/Fonts/Supplemental/Arial Bold Italic.ttf',
+      '/Library/Fonts/Arial Bold Italic.ttf',
+    ],
+    mono: [
+      '/System/Library/Fonts/Menlo.ttc',
+      '/System/Library/Fonts/Supplemental/Courier New.ttf',
+    ],
     monoBold: ['/System/Library/Fonts/Menlo.ttc'],
     cjk: [
-      '/System/Library/Fonts/PingFang.ttc',
+      '/System/Library/Fonts/Hiragino Sans GB.ttc',
       '/System/Library/Fonts/STHeiti Light.ttc',
+      '/System/Library/Fonts/STHeiti Medium.ttc',
+      '/System/Library/Fonts/Supplemental/Songti.ttc',
+      '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
       '/Library/Fonts/Arial Unicode.ttf',
+      '/System/Library/Fonts/PingFang.ttc',
     ],
   },
   win32: {
@@ -109,6 +131,47 @@ function firstExisting(paths) {
   return null
 }
 
+function discoverMacAssetFonts() {
+  if (os.platform() !== 'darwin') {
+    return []
+  }
+  const found = []
+  const roots = [
+    '/System/Library/AssetsV2/com_apple_MobileAsset_Font7',
+    '/System/Library/AssetsV2/com_apple_MobileAsset_Font8',
+  ]
+  for (const root of roots) {
+    if (!fs.existsSync(root)) {
+      continue
+    }
+    const stack = [root]
+    while (stack.length > 0) {
+      const dir = stack.pop()
+      let entries = []
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true })
+      } catch (err) {
+        continue
+      }
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name)
+        if (entry.isDirectory()) {
+          stack.push(full)
+          continue
+        }
+        const lower = entry.name.toLowerCase()
+        if (
+          (lower.endsWith('.ttc') || lower.endsWith('.ttf') || lower.endsWith('.otf')) &&
+          /pingfang|heiti|songti|hiragino|cjk|han|gothic|noto/i.test(entry.name)
+        ) {
+          found.push(full)
+        }
+      }
+    }
+  }
+  return found
+}
+
 function resolveFontPaths(options = {}) {
   const platform = os.platform()
   const defaults = SYSTEM_FONT_CANDIDATES[platform] || SYSTEM_FONT_CANDIDATES.linux
@@ -116,12 +179,33 @@ function resolveFontPaths(options = {}) {
   const resolved = {}
 
   for (const [role, keys] of Object.entries(FONT_ROLE_PATHS)) {
-  const userPath = keys.map((k) => userFonts[k]).find(Boolean)
+    const userPath = keys.map((k) => userFonts[k]).find(Boolean)
     resolved[role] = userPath || firstExisting(keys.flatMap((k) => defaults[k] || []))
   }
 
-  resolved.cjk = userFonts.cjk || firstExisting(defaults.cjk || [])
+  const cjkCandidates = [
+    userFonts.cjk,
+    ...(defaults.cjk || []),
+    ...discoverMacAssetFonts(),
+    fs.existsSync(BUNDLED_CJK_FONT) ? BUNDLED_CJK_FONT : null,
+  ].filter(Boolean)
+
+  resolved.cjk = firstUsableCjkFont(cjkCandidates)
   return resolved
+}
+
+function firstUsableCjkFont(paths) {
+  for (const candidate of paths) {
+    try {
+      const font = openFontFile(candidate)
+      if (font.cmap.has(0x4f60)) {
+        return candidate
+      }
+    } catch (err) {
+      // try next candidate
+    }
+  }
+  return null
 }
 
 function isCjkCodePoint(cp) {
@@ -348,4 +432,5 @@ module.exports = {
   needsUnicodeFont,
   encodePdfHex,
   resolveFontPaths,
+  BUNDLED_CJK_FONT,
 }

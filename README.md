@@ -62,8 +62,9 @@ external dependencies or headless browser. It imitates the GitHub/HTML styling,
 applies `highlight.js` syntax highlighting, embeds PDF bookmarks (table of
 contents) and only references the built-in PDF fonts for Latin text so output
 files stay small. Characters outside WinAnsi (including CJK and most Unicode
-scripts) are rendered using embedded system font subsets discovered from common
-paths on Linux, macOS, and Windows.
+scripts) are rendered using embedded font subsets. A bundled CJK fallback font
+ships with the package; system fonts are preferred when available on Linux,
+macOS, and Windows.
 
 ### Command Line Options
 

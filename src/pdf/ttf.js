@@ -206,14 +206,34 @@ function readNameRecord(buf, offset, nameId) {
 function openFontFile(filePath) {
   const buf = require('fs').readFileSync(filePath)
   if (tag(buf, 0) === 'ttcf') {
-    const count = readU32(buf, 8)
-    const offsets = []
-    for (let i = 0; i < count; i++) {
-      offsets.push(readU32(buf, 12 + i * 4))
-    }
-    return readFont(buf, offsets[0])
+    return openFontCollection(buf)
   }
   return readFont(buf, 0)
+}
+
+// Open a TTC file, preferring the face with the best CJK coverage.
+function openFontCollection(buf) {
+  const count = readU32(buf, 8)
+  let best = null
+  let bestScore = -1
+  for (let i = 0; i < count; i++) {
+    const offset = readU32(buf, 12 + i * 4)
+    try {
+      const font = readFont(buf, offset)
+      const hasSample = font.cmap.has(0x4f60) ? 1_000_000 : 0
+      const score = hasSample + font.cmap.size
+      if (score > bestScore) {
+        bestScore = score
+        best = font
+      }
+    } catch (err) {
+      // try the next face
+    }
+  }
+  if (!best) {
+    throw new Error('No usable font face found in collection')
+  }
+  return best
 }
 
 function glyphForCodePoint(font, cp) {
@@ -347,12 +367,13 @@ function subsetFont(font, glyphIds) {
   }
 
   const out = []
+  const entrySelector = Math.floor(Math.log2(numTables))
+  const searchRange = (1 << entrySelector) * 16
   writeU32(out, 0x00010000)
   writeU16(out, numTables)
-  writeU16(out, 128)
-  writeU16(out, (Math.log2(numTables) | 0) + 1)
-  writeU16(out, numTables * 16 - (1 << ((Math.log2(numTables) | 0) + 1)))
-  writeU16(out, 0)
+  writeU16(out, searchRange)
+  writeU16(out, entrySelector)
+  writeU16(out, numTables * 16 - searchRange)
 
   let headTableOffset = 0
   for (const rec of records) {
@@ -423,7 +444,7 @@ function buildSubsetCmap(glyphIds, cmap, glyphMap) {
   writeU16(bytes, 1)
   writeU16(bytes, 3)
   writeU16(bytes, 10)
-  writeU32(bytes, 20)
+  writeU32(bytes, 12)
 
   if (entries.length === 0) {
     writeU16(bytes, 4)
@@ -516,6 +537,7 @@ function buildMinimalName(family) {
 
 module.exports = {
   openFontFile,
+  openFontCollection,
   glyphForCodePoint,
   advanceWidth,
   collectGlyphs,

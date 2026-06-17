@@ -127,7 +127,10 @@ describe('layout', () => {
 
   it('embeds CJK and Unicode text with Identity-H fonts', () => {
     const zlib = require('zlib')
-    const buffer = renderMarkdownToPdf('CJK: 你好，世界。Special: café — €\n')
+    const { BUNDLED_CJK_FONT } = require('../src/pdf/font-manager')
+    const buffer = renderMarkdownToPdf('CJK: 你好，世界。Special: café — €\n', {
+      fonts: { cjk: BUNDLED_CJK_FONT },
+    })
     const pdf = buffer.toString('latin1')
     expect(pdf).toContain('/Subtype /Type0')
     expect(pdf).toContain('/UF7')
