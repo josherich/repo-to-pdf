@@ -1,8 +1,14 @@
 # Changelog
 
+## v0.1.12(2026-06-16)
+
+- fix markdown image display
+- add Node.js version requirement
+
 ## v0.1.11(2026-06-15)
 
 - enable local file access for calibre renderer
+- fix source inclusion for highlight.js languages without aliases (#33)
 
 ## v0.1.10(2026-06-14)
 
