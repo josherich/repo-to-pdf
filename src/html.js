@@ -7,6 +7,7 @@ const hljs = require('highlight.js')
 
 const RepoBook = require('./repo')
 const { sequenceRenderEbook, sequenceRenderPDF, renderPDF } = require('./render')
+const { renderNativePart } = require('./native')
 const { getFileName, getFileNameExt } = require('./utils')
 
 function getRemarkableParser() {
@@ -111,7 +112,7 @@ function checkOptions(options) {
     options.baseUrl = path.resolve(__dirname, '../html5bp')
   }
 
-  if (options.format !== 'pdf' && options.renderer === 'node') {
+  if (options.format !== 'pdf' && (options.renderer === 'node' || options.renderer === 'native')) {
     console.log(`Try to create ${options.format}, use renderer Calibre.`)
     options.renderer = 'calibre'
   }
@@ -139,7 +140,7 @@ function checkOptions(options) {
 /**
  * @typedef Options
  * @type {object}
- * @property {string} renderer - [node|calibre|wkhtmltopdf] can be either node, calibre and wkhtmltopdf
+ * @property {string} renderer - [native|node|calibre|wkhtmltopdf] native (built-in, dependency-free, default), node (puppeteer), calibre or wkhtmltopdf
  * @property {string} calibrePath - path of calibre's ebook-convert
  * @property {string} pdf_size - pdf size limit, in bytes
  * @property {string} white_list - list of file extensions to be included, separate by ','
@@ -157,7 +158,7 @@ function checkOptions(options) {
  * @param {string} title - title in ebook file
  * @param {Options} options
  */
-async function generateEbook(inputFolder, outputFile, title, options = { renderer: 'node' }) {
+async function generateEbook(inputFolder, outputFile, title, options = { renderer: 'native' }) {
   if (!checkOptions(options)) {
     return
   }
@@ -172,13 +173,24 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
   options.inputFolder = inputFolder
   options.outputFile = outputFile
 
+  const isNative = renderer === 'native'
+  const startTs = Date.now()
   const outputFiles = []
   while (repoBook.hasNextPart()) {
     const mdString = repoBook.render()
     if (!mdString) {
-      console.log('Nothing to generate.')
+      if (outputFiles.length === 0) {
+        console.log('Nothing to generate.')
+      }
       return
     }
+
+    if (isNative) {
+      const outputFile = renderNativePart(mdString, repoBook, options)
+      outputFiles.push(outputFile)
+      continue
+    }
+
     let outputFile = null
     outputFile = getHTMLFiles(mdString, repoBook, options)
 
@@ -190,6 +202,9 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
   }
   if (renderer === 'calibre') {
     sequenceRenderEbook(outputFiles, options)
+  } else if (renderer === 'native') {
+    outputFiles.forEach((file) => console.log(`${file} created.`))
+    console.log(`${outputFileName} created in ${(Date.now() - startTs) / 1000} seconds.`)
   } else if (renderer === 'node') {
     await sequenceRenderPDF(outputFiles, options)
   } else if (renderer === 'wkhtmltopdf') {
