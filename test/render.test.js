@@ -1,5 +1,7 @@
 const fs = require('fs')
+const os = require('os')
 const path = require('path')
+const { pathToFileURL } = require('url')
 const { spawnSync } = require('child_process')
 
 jest.setTimeout(2 * 60 * 1000)
@@ -122,5 +124,33 @@ describe('render', () => {
       baseUrl,
     })
     expect(isPdf(output)).toBe(true)
+  })
+
+  it('renders markdown images in generated HTML', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-to-pdf-'))
+    const assetsDir = path.join(tmpDir, 'assets')
+    const output = path.join(tmpDir, 'book.pdf')
+    fs.mkdirSync(assetsDir)
+    fs.writeFileSync(path.join(assetsDir, 'tiny.svg'), '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n')
+    fs.writeFileSync(path.join(tmpDir, 'README.md'), ['![Tiny image](./assets/tiny.svg)', '<img src="./assets/tiny.svg" alt="Raw image">'].join('\n'))
+
+    await generateEbook(tmpDir, output, 'repo-to-pdf', {
+      renderer: 'node',
+      calibrePath: '/Applications/calibre.app/Contents/MacOS/ebook-convert',
+      pdf_size: PDF_SIZE,
+      white_list: null,
+      format: 'pdf',
+      device: 'desktop',
+      baseUrl,
+    })
+
+    const html = fs.readFileSync(output.replace('.pdf', '.html'), 'utf8')
+    const tinySvgUrl = pathToFileURL(path.join(assetsDir, 'tiny.svg')).href
+
+    expect(html).toContain(`<img src="${tinySvgUrl}" alt="Tiny image">`)
+    expect(html).toContain(`<img src="${tinySvgUrl}" alt="Raw image">`)
+    expect(html).not.toContain(`![Tiny image](${tinySvgUrl})`)
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 })

@@ -1,7 +1,52 @@
 const path = require('path')
 const fs = require('fs')
 const hljs = require('highlight.js')
+const { pathToFileURL } = require('url')
 const { getFileName, getCleanFilename } = require('./utils')
+
+function isExternalImagePath(src) {
+  return /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(src)
+}
+
+function resolveMarkdownImagePath(src, markdownFile) {
+  if (!src || isExternalImagePath(src) || path.isAbsolute(src)) {
+    return src
+  }
+
+  return pathToFileURL(path.resolve(path.dirname(markdownFile), src)).href
+}
+
+// Markdown image syntax: ![alt](src "optional title"), including optional <src>.
+// prettier-ignore
+const markdownImagePattern = new RegExp(
+  [
+    String.raw`(!\[[^\]]*]\()`,
+    String.raw`(\s*)`,
+    String.raw`(<?)`,
+    String.raw`([^)\s>]+)`,
+    String.raw`(>?)`,
+    String.raw`(\s*(?:"[^"]*"|'[^']*'|\([^)]*\))?\s*\))`,
+  ].join(''),
+  'g'
+)
+
+// Raw HTML images: preserve all attributes while rewriting only the src value.
+const htmlImageSrcPattern = /(<img\b[^>]*\bsrc=["'])([^"']+)(["'][^>]*>)/gi
+
+function resolveMarkdownImageReferences(markdown, markdownFile) {
+  // Keep replacement captures aligned with the named regex fragments above.
+  // prettier-ignore
+  return markdown
+    .replace(
+      markdownImagePattern,
+      (_match, open, leading, leftBracket, src, rightBracket, close) =>
+        `${open}${leading}${leftBracket}${resolveMarkdownImagePath(src, markdownFile)}${rightBracket}${close}`
+    )
+    .replace(
+      htmlImageSrcPattern,
+      (_match, open, src, close) => `${open}${resolveMarkdownImagePath(src, markdownFile)}${close}`
+    )
+}
 
 class RepoBook {
   constructor(dir, title, pdf_size, white_list) {
@@ -139,6 +184,7 @@ class RepoBook {
       if (lang) {
         let data = fs.readFileSync(file)
         if (ext === 'md') {
+          data = resolveMarkdownImageReferences(data.toString(), file)
           data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n' + data + '\n'
         } else {
           data = `#### ${getCleanFilename(file, this.dir)} \n[to top](#Contents)` + '\n``` ' + lang + '\n' + data + '\n```\n'

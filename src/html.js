@@ -10,7 +10,8 @@ const { sequenceRenderEbook, sequenceRenderPDF, renderPDF } = require('./render'
 const { getFileName, getFileNameExt } = require('./utils')
 
 function getRemarkableParser() {
-  return new Remarkable({
+  const mdParser = new Remarkable({
+    html: true,
     breaks: true,
     highlight: function (str, lang) {
       if (lang && hljs.getLanguage(lang)) {
@@ -30,6 +31,13 @@ function getRemarkableParser() {
       return '<h' + tokens[idx].hLevel + ' id=' + tokens[idx + 1].content + ' anchor=true>'
     }
   })
+
+  const validateLink = mdParser.inline.validateLink
+  mdParser.inline.validateLink = function (url) {
+    return /^file:\/\//i.test(url) || validateLink(url)
+  }
+
+  return mdParser
 }
 
 // => './path/file-1.html'
