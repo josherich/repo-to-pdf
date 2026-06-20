@@ -33,6 +33,19 @@ function buildToUnicodeCmap() {
   return Buffer.from(lines.join('\n'), 'latin1')
 }
 
+// Map Unicode CIDs (Identity-H code points) to glyph indices in the subset font.
+function buildCidToGidMap(gidsByCodePoint) {
+  if (!gidsByCodePoint || gidsByCodePoint.size === 0) {
+    return null
+  }
+  const maxCid = Math.max(...gidsByCodePoint.keys())
+  const map = Buffer.alloc((maxCid + 1) * 2)
+  for (const [cp, gid] of gidsByCodePoint) {
+    map.writeUInt16BE(gid, cp * 2)
+  }
+  return map
+}
+
 // Minimal PDF writer. Produces a single-file PDF with the base-14 fonts,
 // optional embedded Unicode fonts, FlateDecode-compressed content streams and
 // an optional document outline (bookmarks). No external dependencies are used.
@@ -75,6 +88,7 @@ class PDFDocument {
     const cidFontId = this._alloc()
     const type0Id = this._alloc()
     const toUnicodeId = this._alloc()
+    const cidToGidId = this._alloc()
 
     const fontStream = Buffer.concat([
       Buffer.from(`<< /Length ${subset.buffer.length} /Length1 ${subset.buffer.length} >>\nstream\n`, 'latin1'),
@@ -95,7 +109,19 @@ class PDFDocument {
       })
       .join(' ')
     const defaultWidth = subset.widths[0] || 1000
-    const cidFont = `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${baseFont} ` + `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> ` + `/FontDescriptor ${descriptorId} 0 R /DW ${Math.round(defaultWidth * 0.5)} ` + `/W [${wParts}] /CIDToGIDMap /Identity >>`
+    const cidToGidMap = buildCidToGidMap(subset.gidsByCodePoint)
+    const cidToGidRef = cidToGidMap
+      ? (() => {
+          const stream = Buffer.concat([
+            Buffer.from(`<< /Length ${cidToGidMap.length} >>\nstream\n`, 'latin1'),
+            cidToGidMap,
+            Buffer.from('\nendstream', 'latin1'),
+          ])
+          this._set(cidToGidId, stream)
+          return `${cidToGidId} 0 R`
+        })()
+      : '/Identity'
+    const cidFont = `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${baseFont} ` + `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> ` + `/FontDescriptor ${descriptorId} 0 R /DW ${Math.round(defaultWidth * 0.5)} ` + `/W [${wParts}] /CIDToGIDMap ${cidToGidRef} >>`
     this._set(cidFontId, cidFont)
 
     const toUnicode = Buffer.concat([
@@ -249,3 +275,4 @@ class PDFDocument {
 }
 
 module.exports = PDFDocument
+module.exports.buildCidToGidMap = buildCidToGidMap
