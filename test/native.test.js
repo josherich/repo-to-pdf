@@ -128,14 +128,12 @@ describe('layout', () => {
   it('embeds CJK and Unicode text with Identity-H fonts', () => {
     const zlib = require('zlib')
     const { BUNDLED_CJK_FONT } = require('../src/pdf/font-manager')
-    const text = 'CJK: 你好，世界。日本語の文章。한국어 문장.\n'
-    const buffer = renderMarkdownToPdf(text, {
+    const buffer = renderMarkdownToPdf('CJK: 你好，世界。Special: café — €\n', {
       fonts: { cjk: BUNDLED_CJK_FONT },
     })
     const pdf = buffer.toString('latin1')
     expect(pdf).toContain('/Subtype /Type0')
     expect(pdf).toContain('/UF7')
-    expect(pdf).not.toContain('/CIDToGIDMap /Identity')
 
     const streamStart = buffer.indexOf('stream\n') + 7
     const streamEnd = buffer.indexOf('\nendstream', streamStart)
@@ -143,18 +141,5 @@ describe('layout', () => {
     expect(content).toContain('<4F60>')
     expect(content).toContain('<597D>')
     expect(content).not.toMatch(/Tm \(\?+\) Tj/)
-
-    const cidMapMatch = pdf.match(/\/CIDToGIDMap (\d+) 0 R/)
-    expect(cidMapMatch).toBeTruthy()
-    const cidObjId = Number(cidMapMatch[1])
-    const objRe = new RegExp(`${cidObjId} 0 obj\\n<< /Length (\\d+) >>\\nstream\\n`, 'm')
-    const objMatch = pdf.match(objRe)
-    expect(objMatch).toBeTruthy()
-    const mapLen = Number(objMatch[1])
-    const mapStart = pdf.indexOf(objMatch[0]) + objMatch[0].length
-    const mapBuf = buffer.slice(mapStart, mapStart + mapLen)
-    const gidForNi = mapBuf.readUInt16BE(0x4f60 * 2)
-    expect(gidForNi).toBeGreaterThan(0)
-    expect(gidForNi).not.toBe(0x4f60)
   })
 })

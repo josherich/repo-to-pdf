@@ -11,15 +11,12 @@ function buildSubset(font, codePoints) {
   const glyphs = collectGlyphs(font, codePoints)
   const subset = subsetFont(font, glyphs)
   const widthsByCodePoint = new Map()
-  const gidsByCodePoint = new Map()
   for (const cp of codePoints) {
     const gid = glyphForCodePoint(font, cp)
     const idx = subset.glyphMap.get(gid)
     widthsByCodePoint.set(cp, subset.widths[idx] || 0)
-    gidsByCodePoint.set(cp, idx)
   }
   subset.widthsByCodePoint = widthsByCodePoint
-  subset.gidsByCodePoint = gidsByCodePoint
   return subset
 }
 
