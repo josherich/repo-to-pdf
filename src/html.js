@@ -41,6 +41,45 @@ function getRemarkableParser() {
   return mdParser
 }
 
+function buildFooterCSS(options) {
+  const { footerPageNumber, footerChapterTitle } = options
+  if (!footerChapterTitle) {
+    return ''
+  }
+
+  let bottomRight = footerPageNumber ? 'string(chapter, last) " \\007C " counter(page)' : 'string(chapter, last)'
+
+  return `
+    h4[anchor]:has(+ p a[href="#Contents" i]) {
+      string-set: chapter content(text);
+    }
+    @media print {
+      @page {
+        margin-bottom: 72pt;
+        @bottom-left {
+          vertical-align: top;
+          border-top: 0.75pt solid #d8dee4;
+          content: "";
+        }
+        @bottom-center {
+          vertical-align: top;
+          border-top: 0.75pt solid #d8dee4;
+          content: "";
+        }
+        @bottom-right {
+          vertical-align: top;
+          border-top: 0.75pt solid #d8dee4;
+          content: ${bottomRight};
+          font-size: 9pt;
+          color: #6a737d;
+          padding-top: 6pt;
+          text-align: right;
+        }
+      }
+    }
+  `
+}
+
 // => './path/file-1.html'
 function getHTMLFiles(mdString, repoBook, options) {
   const { pdf_size, white_list, device, baseUrl, protocol, renderer, outputFileName, inputFolder } = options
@@ -81,6 +120,7 @@ function getHTMLFiles(mdString, repoBook, options) {
     .replace('{{cssPath}}', protocol + baseUrl + opts.cssPath[device])
     .replace('{{highlightPath}}', protocol + baseUrl + opts.highlightCssPath)
     .replace('{{relaxedCSS}}', opts.relaxedCSS[device])
+    .replace('{{footerCSS}}', buildFooterCSS(options))
     .replace('{{content}}', mdHtml)
 
   if (!repoBook.hasSingleFile()) {
@@ -94,6 +134,9 @@ function checkOptions(options) {
   if (options.outline === undefined) {
     options.outline = true
   }
+
+  options.footerPageNumber = !!options.footerPageNumber
+  options.footerChapterTitle = !!options.footerChapterTitle
 
   if (options.concurrency !== undefined) {
     const concurrency = Number(options.concurrency)
@@ -149,6 +192,8 @@ function checkOptions(options) {
  * @property {string} baseUrl - base url of CSS style files
  * @property {boolean} outline - include PDF outline/bookmarks (default true)
  * @property {number} concurrency - max number of parallel Puppeteer render jobs (default auto)
+ * @property {boolean} footerPageNumber - show page numbers in the bottom-right footer with a rule
+ * @property {boolean} footerChapterTitle - show the current section title in the bottom-right footer with a rule
  */
 
 /**

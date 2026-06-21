@@ -51,7 +51,7 @@ class HTML2PDF {
 
   async pdf(templatePath, outputPath, options = {}) {
     await this._initializePlugins()
-    const { outline = true } = options
+    const { outline = true, footerPageNumber = false, footerChapterTitle = false } = options
     const puppeteerPage = await this.chrome.newPage()
     await puppeteerPage.setJavaScriptEnabled(false)
 
@@ -62,10 +62,19 @@ class HTML2PDF {
       })
       const pdfOptions = {
         path: outputPath,
-        displayHeaderFooter: false,
+        displayHeaderFooter: footerPageNumber && !footerChapterTitle,
         printBackground: true,
         timeout: DEFAULT_PDF_TIMEOUT_SECONDS * 1000,
         outline,
+      }
+
+      if (footerPageNumber || footerChapterTitle) {
+        pdfOptions.margin = { top: '54px', bottom: '72px', left: '54px', right: '54px' }
+      }
+
+      if (footerPageNumber && !footerChapterTitle) {
+        pdfOptions.footerTemplate =
+          '<div style="width: 100%; font-size: 9px; color: #6a737d; padding: 4px 54px 0; border-top: 0.75px solid #d8dee4; text-align: right;"><span class="pageNumber"></span></div>'
       }
 
       await puppeteerPage.pdf(pdfOptions)
