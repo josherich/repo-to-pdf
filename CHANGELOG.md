@@ -8,6 +8,7 @@
   - available via `-r native`
 - add `--footer-chapter-title` option to show chapter titles in the footer
 - add `--footer-page-number` option to show page numbers in the footer
+- add `-x, --exclude` option to exclude files by glob patterns
 
 ## v0.1.12(2026-06-16)
 
