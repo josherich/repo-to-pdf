@@ -6,6 +6,8 @@
   - imitates the HTML/GitHub styling with `highlight.js` syntax highlighting
   - embeds a PDF outline (table of contents) and uses only built-in fonts to keep files small
   - available via `-r native`
+- add `--footer-chapter-title` option to show chapter titles in the footer
+- add `--footer-page-number` option to show page numbers in the footer
 
 ## v0.1.12(2026-06-16)
 
