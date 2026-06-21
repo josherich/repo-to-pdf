@@ -96,4 +96,27 @@ describe('RepoBook', () => {
 
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
+
+  it('excludes files matching exclude_list glob patterns', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-to-pdf-'))
+    const srcDir = path.join(tmpDir, 'src')
+    const generatedDir = path.join(srcDir, 'generated')
+    fs.mkdirSync(generatedDir, { recursive: true })
+
+    fs.writeFileSync(path.join(srcDir, 'app.js'), 'console.log("app")\n')
+    fs.writeFileSync(path.join(srcDir, 'app.test.js'), 'test("app")\n')
+    fs.writeFileSync(path.join(generatedDir, 'bundle.js'), 'console.log("generated")\n')
+    fs.writeFileSync(path.join(tmpDir, 'README.md'), '# Project\n')
+
+    const repoBook = new RepoBook(tmpDir, 'test', Number.MAX_SAFE_INTEGER, null, '**/*.test.js,src/generated/**')
+    const output = repoBook.render()
+
+    expect(output).toContain('app.js')
+    expect(output).toContain('README.md')
+    expect(output).not.toContain('app.test.js')
+    expect(output).not.toContain('generated')
+    expect(output).not.toContain('bundle.js')
+
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
 })

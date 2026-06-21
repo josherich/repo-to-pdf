@@ -186,7 +186,8 @@ function checkOptions(options) {
  * @property {string} renderer - [native|node|calibre|wkhtmltopdf] node (puppeteer, default), native (built-in, dependency-free), calibre or wkhtmltopdf
  * @property {string} calibrePath - path of calibre's ebook-convert
  * @property {string} pdf_size - pdf size limit, in bytes
- * @property {string} white_list - list of file extensions to be included, separate by ','
+ * @property {string|string[]} white_list - list of file extensions to be included, separate by ','
+ * @property {string|string[]} exclude_list - list of file paths to exclude, using Unix glob patterns
  * @property {string} format - [mobi|epub|pdf] can be either mobi, epub, pdf
  * @property {string} device - [desktop|tablet|mobile] style can be opt for desktop, tablet and mobile
  * @property {string} baseUrl - base url of CSS style files
@@ -208,8 +209,8 @@ async function generateEbook(inputFolder, outputFile, title, options = { rendere
     return
   }
 
-  const { pdf_size, white_list, renderer } = options
-  const repoBook = new RepoBook(inputFolder, title, pdf_size, white_list)
+  const { pdf_size, white_list, exclude_list, renderer } = options
+  const repoBook = new RepoBook(inputFolder, title, pdf_size, white_list, exclude_list)
 
   const defaultOutputFileName = getFileName(inputFolder) + '.pdf'
   const outputFileName = outputFile || defaultOutputFileName

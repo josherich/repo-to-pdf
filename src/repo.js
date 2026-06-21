@@ -2,7 +2,7 @@ const path = require('path')
 const fs = require('fs')
 const hljs = require('highlight.js')
 const { pathToFileURL } = require('url')
-const { getFileName, getCleanFilename } = require('./utils')
+const { getFileName, getCleanFilename, parsePathList, isPathExcluded } = require('./utils')
 
 const MAX_FILE_SIZE_BYTES = 2 * 1000 * 1000
 
@@ -51,11 +51,12 @@ function resolveMarkdownImageReferences(markdown, markdownFile) {
 }
 
 class RepoBook {
-  constructor(dir, title, pdf_size, white_list) {
+  constructor(dir, title, pdf_size, white_list, exclude_list) {
     this.title = title
     this.pdf_size = pdf_size
 
     this.blackList = ['node_modules', 'vendor']
+    this.excludeList = parsePathList(exclude_list)
     this.whiteList = white_list
       ? white_list
           .split(',')
@@ -121,6 +122,10 @@ class RepoBook {
     })
   }
 
+  isExcluded(file) {
+    return isPathExcluded(file, this.dir, this.excludeList)
+  }
+
   getLanguageForFile(file) {
     const stat = fs.lstatSync(file)
     if (!stat.isFile() || stat.size > MAX_FILE_SIZE_BYTES) {
@@ -150,16 +155,17 @@ class RepoBook {
       const f = path.join(dir, name)
       const stat = fs.lstatSync(f)
       const blackListHit = this.blackList.filter((e) => !!f.match(e)).length > 0
+      const excluded = blackListHit || this.isExcluded(f)
 
       if (stat.isDirectory()) {
-        if (path.basename(f)[0] !== '.' && blackListHit === false) {
+        if (path.basename(f)[0] !== '.' && excluded === false) {
           const nestedEntries = this.readDir(f, [], level + 1)
           if (nestedEntries.length > 0) {
             entries.push([f, level + 1, true])
             entries.push(...nestedEntries)
           }
         }
-      } else if (this.getLanguageForFile(f)) {
+      } else if (!excluded && this.getLanguageForFile(f)) {
         entries.push([f, level + 1, false])
       }
 
