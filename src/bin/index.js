@@ -14,6 +14,7 @@ program
   .option('-d, --device <platform>', 'device [desktop(default)|mobile|tablet]', 'desktop')
   .option('-t, --title [name]', 'title')
   .option('-w, --whitelist [wlist]', 'file format white list, split by ,')
+  .option('-x, --exclude <patterns>', 'file paths to exclude, Unix glob patterns split by ,')
   .option('-s, --size [size]', 'pdf file size limit, in Mb')
   .option('-r, --renderer <engine>', '[native|node|wkhtmltopdf|calibre] native(built-in, no deps), node(puppeteer, default), wkhtmltopdf or calibre', 'node')
   .option('-f, --format <ext>', 'output format, pdf|mobi|epub', 'pdf')
@@ -36,6 +37,7 @@ const device = program.device
 const pdf_size = program.size ? getSizeInByte(program.size) : PDF_SIZE
 const format = program.format
 const white_list = program.whitelist
+const exclude_list = program.exclude
 const renderer = program.renderer
 const calibrePath = program.calibre
 const baseUrl = program.baseUrl
@@ -49,6 +51,7 @@ generateEbook(inputFolder, outputFile, title, {
   calibrePath,
   pdf_size,
   white_list,
+  exclude_list,
   format,
   device,
   baseUrl,
