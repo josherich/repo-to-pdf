@@ -17,6 +17,7 @@ function buildSubset(font, codePoints) {
     widthsByCodePoint.set(cp, subset.widths[idx] || 0)
   }
   subset.widthsByCodePoint = widthsByCodePoint
+  subset.glyphIdByCodePoint = new Map([...codePoints].map((cp) => [cp, glyphForCodePoint(font, cp)]))
   return subset
 }
 
@@ -190,22 +191,39 @@ function resolveFontPaths(options = {}) {
     fs.existsSync(BUNDLED_CJK_FONT) ? BUNDLED_CJK_FONT : null,
   ].filter(Boolean)
 
-  resolved.cjk = firstUsableCjkFont(cjkCandidates)
+  resolved.cjk = bestUsableCjkFont(cjkCandidates)
   return resolved
 }
 
-function firstUsableCjkFont(paths) {
+function bestUsableCjkFont(paths) {
+  const sampleCodePoints = [
+    0x4f60, // CJK unified ideograph
+    0x65e5, // Japanese kanji
+    0x3042, // hiragana
+    0x30a2, // katakana
+    0xd55c, // Hangul syllable
+    0x3002, // CJK punctuation
+  ]
+  let best = null
+  let bestScore = -1
+
   for (const candidate of paths) {
     try {
       const font = openFontFile(candidate)
-      if (font.cmap.has(0x4f60)) {
-        return candidate
+      const coverage = sampleCodePoints.filter((cp) => glyphForCodePoint(font, cp) !== 0).length
+      if (coverage === 0) {
+        continue
+      }
+      const score = coverage * 1_000_000 + font.cmap.size
+      if (score > bestScore) {
+        best = candidate
+        bestScore = score
       }
     } catch (err) {
       // try next candidate
     }
   }
-  return null
+  return best
 }
 
 function isCjkCodePoint(cp) {

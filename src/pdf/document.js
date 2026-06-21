@@ -33,6 +33,25 @@ function buildToUnicodeCmap() {
   return Buffer.from(lines.join('\n'), 'latin1')
 }
 
+function buildCidToGidMap(subset, codePoints = []) {
+  const points = codePoints.filter((cp) => cp >= 0 && cp <= 0xffff)
+  if (points.length === 0) {
+    return null
+  }
+
+  const maxCid = Math.max(...points)
+  const map = Buffer.alloc((maxCid + 1) * 2)
+  for (const cp of points) {
+    const originalGlyphId = subset.glyphIdByCodePoint && subset.glyphIdByCodePoint.get(cp)
+    const subsetGlyphId = subset.glyphMap.get(originalGlyphId)
+    if (subsetGlyphId === undefined) {
+      continue
+    }
+    map.writeUInt16BE(subsetGlyphId, cp * 2)
+  }
+  return map
+}
+
 // Minimal PDF writer. Produces a single-file PDF with the base-14 fonts,
 // optional embedded Unicode fonts, FlateDecode-compressed content streams and
 // an optional document outline (bookmarks). No external dependencies are used.
@@ -75,6 +94,8 @@ class PDFDocument {
     const cidFontId = this._alloc()
     const type0Id = this._alloc()
     const toUnicodeId = this._alloc()
+    const cidToGidMap = buildCidToGidMap(subset, codePoints)
+    const cidToGidMapId = cidToGidMap ? this._alloc() : null
 
     const fontStream = Buffer.concat([
       Buffer.from(`<< /Length ${subset.buffer.length} /Length1 ${subset.buffer.length} >>\nstream\n`, 'latin1'),
@@ -95,7 +116,13 @@ class PDFDocument {
       })
       .join(' ')
     const defaultWidth = subset.widths[0] || 1000
-    const cidFont = `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${baseFont} ` + `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> ` + `/FontDescriptor ${descriptorId} 0 R /DW ${Math.round(defaultWidth * 0.5)} ` + `/W [${wParts}] /CIDToGIDMap /Identity >>`
+    let cidFont = `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${baseFont} ` + `/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> ` + `/FontDescriptor ${descriptorId} 0 R /DW ${Math.round(defaultWidth * 0.5)} ` + `/W [${wParts}]`
+    if (cidToGidMapId) {
+      cidFont += ` /CIDToGIDMap ${cidToGidMapId} 0 R`
+    } else {
+      cidFont += ' /CIDToGIDMap /Identity'
+    }
+    cidFont += ' >>'
     this._set(cidFontId, cidFont)
 
     const toUnicode = Buffer.concat([
@@ -104,6 +131,15 @@ class PDFDocument {
       Buffer.from('\nendstream', 'latin1'),
     ])
     this._set(toUnicodeId, toUnicode)
+
+    if (cidToGidMapId) {
+      const cidToGidStream = Buffer.concat([
+        Buffer.from(`<< /Length ${cidToGidMap.length} >>\nstream\n`, 'latin1'),
+        cidToGidMap,
+        Buffer.from('\nendstream', 'latin1'),
+      ])
+      this._set(cidToGidMapId, cidToGidStream)
+    }
 
     const type0 = `<< /Type /Font /Subtype /Type0 /BaseFont /${baseFont} /Encoding /Identity-H ` + `/DescendantFonts [${cidFontId} 0 R] /ToUnicode ${toUnicodeId} 0 R >>`
     this._set(type0Id, type0)
