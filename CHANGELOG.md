@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.2.0(2026-06-17) - unreleased
+## v0.2.0(2026-06-20)
 
 - add `native` renderer: a dependency-free, highly efficient PDF generator that reads source code and writes PDF directly (no puppeteer/headless browser)
   - imitates the HTML/GitHub styling with `highlight.js` syntax highlighting
