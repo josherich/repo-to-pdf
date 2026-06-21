@@ -155,6 +155,7 @@ function measureText(str, fontKey, fontSize) {
 module.exports = {
   FONT_NAMES,
   FONT_KEYS,
+  toWinAnsiByte,
   encodePdfString,
   charWidth,
   measureText,

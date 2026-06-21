@@ -1,5 +1,6 @@
 const PDFDocument = require('./document')
-const { FONT_KEYS, measureText, encodePdfString } = require('./fonts')
+const { FONT_KEYS, measureText: measureWinAnsi, encodePdfString } = require('./fonts')
+const { getFontManager, resetFontManager, isCjkCodePoint, encodePdfHex } = require('./font-manager')
 const { highlightCode } = require('./highlighter')
 const { parseBlocks } = require('./markdown')
 
@@ -79,9 +80,47 @@ function runColor(run, defaultColor) {
   return defaultColor
 }
 
+function measureText(str, fontKey, fontSize, fontManager) {
+  if (fontManager && fontManager.enabled) {
+    return fontManager.measureText(str, fontKey, fontSize)
+  }
+  return measureWinAnsi(str, fontKey, fontSize)
+}
+
+function splitWrappablePieces(text) {
+  if (/^\s+$/.test(text)) {
+    return [text]
+  }
+  const parts = []
+  let latin = ''
+  for (const ch of text) {
+    const cp = ch.codePointAt(0)
+    if (/\s/.test(ch)) {
+      if (latin) {
+        parts.push(latin)
+        latin = ''
+      }
+      parts.push(ch)
+    } else if (isCjkCodePoint(cp)) {
+      if (latin) {
+        parts.push(latin)
+        latin = ''
+      }
+      parts.push(ch)
+    } else {
+      latin += ch
+    }
+  }
+  if (latin) {
+    parts.push(latin)
+  }
+  return parts.length > 0 ? parts : [text]
+}
+
 class Layout {
-  constructor() {
+  constructor(options = {}) {
     this.doc = new PDFDocument(PAGE)
+    this.fontManager = getFontManager(options)
     this.ops = []
     this.y = MARGIN.top
     this.pageIndex = 0
@@ -112,7 +151,14 @@ class Layout {
     if (!text) {
       return
     }
+    this.fontManager.noteText(text, fontKey)
     const pdfY = round(PAGE.height - baselineTop)
+    const unicodeKey = this.fontManager.pdfFontKey(fontKey, text)
+    if (unicodeKey) {
+      const hex = encodePdfHex(text)
+      this.ops.push(`BT /${unicodeKey} ${size} Tf ${hexToRgb(color)} rg 1 0 0 1 ${round(x)} ${pdfY} Tm <${hex}> Tj ET`)
+      return
+    }
     const encoded = encodePdfString(text).toString('latin1')
     this.ops.push(`BT /${FONT_KEYS[fontKey]} ${size} Tf ${hexToRgb(color)} rg 1 0 0 1 ${round(x)} ${pdfY} Tm (${encoded}) Tj ET`)
   }
@@ -150,7 +196,7 @@ class Layout {
     for (const run of runs) {
       const fontKey = runFont(run)
       const color = runColor(run, defaultColor)
-      const pieces = run.text.replace(/\t/g, '  ').split(/(\s+)/)
+      const pieces = splitWrappablePieces(run.text.replace(/\t/g, '  '))
       for (const piece of pieces) {
         if (piece.length === 0) {
           continue
@@ -173,7 +219,7 @@ class Layout {
     }
 
     for (const token of tokens) {
-      let width = measureText(token.text, token.fontKey, size)
+      let width = measureText(token.text, token.fontKey, size, this.fontManager)
 
       if (token.isSpace) {
         if (line.length === 0) {
@@ -187,15 +233,21 @@ class Layout {
       // Hard-break tokens that are wider than a full line.
       if (width > maxWidth && line.length === 0) {
         let remaining = token.text
-        while (measureText(remaining, token.fontKey, size) > maxWidth && remaining.length > 1) {
+        while (measureText(remaining, token.fontKey, size, this.fontManager) > maxWidth && remaining.length > 1) {
           let fit = remaining.length
-          while (fit > 1 && measureText(remaining.slice(0, fit), token.fontKey, size) > maxWidth) {
+          while (fit > 1 && measureText(remaining.slice(0, fit), token.fontKey, size, this.fontManager) > maxWidth) {
             fit--
           }
-          lines.push([{ ...token, text: remaining.slice(0, fit), width: measureText(remaining.slice(0, fit), token.fontKey, size) }])
+          lines.push([
+            {
+              ...token,
+              text: remaining.slice(0, fit),
+              width: measureText(remaining.slice(0, fit), token.fontKey, size, this.fontManager),
+            },
+          ])
           remaining = remaining.slice(fit)
         }
-        width = measureText(remaining, token.fontKey, size)
+        width = measureText(remaining, token.fontKey, size, this.fontManager)
         line.push({ ...token, text: remaining, width })
         lineWidth += width
         continue
@@ -327,12 +379,12 @@ class Layout {
   _codeBlock(block, left, width) {
     const lines = highlightCode(block.code, block.lang)
     const innerWidth = width - 2 * CODE_PAD
-    const monoCharWidth = measureText('0', 'mono', CODE_SIZE)
+    const monoCharWidth = measureText('0', 'mono', CODE_SIZE, this.fontManager)
     const maxChars = Math.max(1, Math.floor(innerWidth / monoCharWidth))
 
     const display = []
     for (const lineRuns of lines) {
-      const wrapped = wrapMonoLine(lineRuns, maxChars)
+      const wrapped = wrapMonoLine(lineRuns, maxChars, innerWidth, this.fontManager)
       for (const w of wrapped) {
         display.push(w)
       }
@@ -364,7 +416,7 @@ class Layout {
       for (const run of lineRuns) {
         const fontKey = run.bold ? 'monoBold' : 'mono'
         this._text(cursor, baseline, run.text, fontKey, CODE_SIZE, run.color || COLORS.codeText)
-        cursor += measureText(run.text, fontKey, CODE_SIZE)
+        cursor += measureText(run.text, fontKey, CODE_SIZE, this.fontManager)
       }
       this.y += CODE_LINE
     }
@@ -450,7 +502,7 @@ class Layout {
       for (let c = 0; c < colCount; c++) {
         const cell = row[c] || []
         const text = cell.map((r) => r.text).join('')
-        natural[c] = Math.max(natural[c], measureText(text, 'body', TABLE_SIZE) + 2 * padX)
+        natural[c] = Math.max(natural[c], measureText(text, 'body', TABLE_SIZE, this.fontManager) + 2 * padX)
       }
     }
     const naturalSum = natural.reduce((a, b) => a + b, 0)
@@ -524,14 +576,14 @@ class Layout {
       this.doc.addPage(this.ops.join('\n'))
       this.ops = []
     }
+    this.fontManager.finalize(this.doc)
     const outline = options.outline === false ? null : this.outline
     return this.doc.build(outline)
   }
 }
 
-// Wrap a single source line (array of styled runs) to at most `maxChars`
-// monospace characters per display line.
-function wrapMonoLine(runs, maxChars) {
+// Wrap a single source line (array of styled runs) to fit within the line width.
+function wrapMonoLine(runs, maxChars, maxWidth, fontManager) {
   if (!runs || runs.length === 0) {
     return [[]]
   }
@@ -539,26 +591,54 @@ function wrapMonoLine(runs, maxChars) {
   const out = []
   let current = []
   let length = 0
+  let lineWidth = 0
+
+  const pushLine = () => {
+    out.push(current)
+    current = []
+    length = 0
+    lineWidth = 0
+  }
 
   for (const run of runs) {
     const text = run.text.replace(/\t/g, '  ')
+    const chars = [...text]
     let index = 0
-    while (index < text.length) {
-      const space = maxChars - length
-      if (space <= 0) {
-        out.push(current)
-        current = []
-        length = 0
+    while (index < chars.length) {
+      const ch = chars[index]
+      const fontKey = run.bold ? 'monoBold' : 'mono'
+      const charW = measureText(ch, fontKey, CODE_SIZE, fontManager)
+
+      if (maxWidth && lineWidth + charW > maxWidth && current.length > 0) {
+        pushLine()
         continue
       }
-      const take = text.slice(index, index + space)
-      current.push({ text: take, color: run.color, bold: run.bold, italic: run.italic })
-      length += take.length
-      index += take.length
+
+      if (!maxWidth) {
+        const space = maxChars - length
+        if (space <= 0) {
+          pushLine()
+          continue
+        }
+        const take = chars.slice(index, index + space).join('')
+        current.push({ text: take, color: run.color, bold: run.bold, italic: run.italic })
+        length += take.length
+        index += take.length
+        continue
+      }
+
+      const last = current[current.length - 1]
+      if (last && last.bold === run.bold && last.color === run.color) {
+        last.text += ch
+      } else {
+        current.push({ text: ch, color: run.color, bold: run.bold, italic: run.italic })
+      }
+      lineWidth += charW
+      index++
     }
   }
-  out.push(current)
-  return out
+  pushLine()
+  return out.length > 0 ? out : [[]]
 }
 
 function isToTopLink(paragraph) {
@@ -575,7 +655,8 @@ function isToTopLink(paragraph) {
 
 // Render a markdown string into a PDF Buffer.
 function renderMarkdownToPdf(markdown, options = {}) {
-  const layout = new Layout()
+  resetFontManager()
+  const layout = new Layout(options)
   layout.render(markdown)
   return layout.finish(options)
 }

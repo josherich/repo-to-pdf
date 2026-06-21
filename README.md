@@ -60,10 +60,11 @@ generateEbook('./', 'test.pdf', 'repo-test', { renderer: 'node', pdf_size: 3 * 0
 The `native` renderer reads the source code and writes a PDF directly, with no
 external dependencies or headless browser. It imitates the GitHub/HTML styling,
 applies `highlight.js` syntax highlighting, embeds PDF bookmarks (table of
-contents) and only references the built-in PDF fonts so output files stay
-small. Because it relies on the standard fonts, glyphs outside WinAnsi (e.g.
-CJK) are substituted with a placeholder; use the `node` renderer if you need
-full Unicode coverage.
+contents) and only references the built-in PDF fonts for Latin text so output
+files stay small. Characters outside WinAnsi (including CJK and most Unicode
+scripts) are rendered using embedded font subsets. A bundled CJK fallback font
+ships with the package; system fonts are preferred when available on Linux,
+macOS, and Windows.
 
 ### Command Line Options
 
