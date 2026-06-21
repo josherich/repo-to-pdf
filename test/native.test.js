@@ -135,6 +135,14 @@ describe('layout', () => {
     expect(pdf).toContain('/Subtype /Type0')
     expect(pdf).toContain('/UF7')
 
+    const cidMapRef = pdf.match(/\/CIDToGIDMap (\d+) 0 R/)
+    expect(cidMapRef).toBeTruthy()
+    const cidMapObjectStart = buffer.indexOf(`${cidMapRef[1]} 0 obj\n`)
+    const cidMapStreamStart = buffer.indexOf('stream\n', cidMapObjectStart) + 7
+    const cidMapStreamEnd = buffer.indexOf('\nendstream', cidMapStreamStart)
+    const cidMap = buffer.slice(cidMapStreamStart, cidMapStreamEnd)
+    expect(cidMap.readUInt16BE(0x4f60 * 2)).toBeGreaterThan(0)
+
     const streamStart = buffer.indexOf('stream\n') + 7
     const streamEnd = buffer.indexOf('\nendstream', streamStart)
     const content = zlib.inflateSync(buffer.slice(streamStart, streamEnd)).toString('latin1')

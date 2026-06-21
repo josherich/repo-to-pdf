@@ -253,7 +253,7 @@ function collectGlyphs(font, codePoints) {
   for (const cp of codePoints) {
     glyphs.add(glyphForCodePoint(font, cp))
   }
-  return [...glyphs].sort((a, b) => a - b)
+  return expandCompositeGlyphs(font, glyphs)
 }
 
 function writeU16(arr, value) {
@@ -272,9 +272,88 @@ function pad4(len) {
   return (4 - (len % 4)) % 4
 }
 
+function compositeGlyphIds(font, glyphId) {
+  const glyf = font.tables.get('glyf')
+  const start = font.loca[glyphId]
+  const end = font.loca[glyphId + 1]
+  if (start === end) {
+    return []
+  }
+
+  const glyphOffset = glyf.offset + start
+  const numberOfContours = readI16(font.buffer, glyphOffset)
+  if (numberOfContours >= 0) {
+    return []
+  }
+
+  const components = []
+  let pos = glyphOffset + 10
+  let flags = 0
+  do {
+    flags = readU16(font.buffer, pos)
+    components.push(readU16(font.buffer, pos + 2))
+    pos += 4
+    pos += flags & 0x0001 ? 4 : 2
+    if (flags & 0x0008) {
+      pos += 2
+    } else if (flags & 0x0040) {
+      pos += 4
+    } else if (flags & 0x0080) {
+      pos += 8
+    }
+  } while (flags & 0x0020)
+
+  return components
+}
+
+function expandCompositeGlyphs(font, glyphIds) {
+  const glyphs = new Set(glyphIds)
+  const stack = [...glyphs]
+  while (stack.length > 0) {
+    const glyphId = stack.pop()
+    for (const componentId of compositeGlyphIds(font, glyphId)) {
+      if (!glyphs.has(componentId)) {
+        glyphs.add(componentId)
+        stack.push(componentId)
+      }
+    }
+  }
+  return [...glyphs].sort((a, b) => a - b)
+}
+
+function remapCompositeGlyph(font, glyphId, glyphData, glyphMap) {
+  if (glyphData.length === 0 || readI16(glyphData, 0) >= 0) {
+    return glyphData
+  }
+
+  const remapped = Buffer.from(glyphData)
+  let pos = 10
+  let flags = 0
+  do {
+    flags = readU16(remapped, pos)
+    const componentId = readU16(remapped, pos + 2)
+    const subsetComponentId = glyphMap.get(componentId)
+    if (subsetComponentId === undefined) {
+      throw new Error(`Missing composite glyph ${componentId} for glyph ${glyphId}`)
+    }
+    remapped.writeUInt16BE(subsetComponentId, pos + 2)
+    pos += 4
+    pos += flags & 0x0001 ? 4 : 2
+    if (flags & 0x0008) {
+      pos += 2
+    } else if (flags & 0x0040) {
+      pos += 4
+    } else if (flags & 0x0080) {
+      pos += 8
+    }
+  } while (flags & 0x0020)
+
+  return remapped
+}
+
 // Build a subset TTF containing only the requested glyph indices.
 function subsetFont(font, glyphIds) {
-  const sorted = [...new Set(glyphIds)].sort((a, b) => a - b)
+  const sorted = expandCompositeGlyphs(font, glyphIds)
   const map = new Map(sorted.map((gid, idx) => [gid, idx]))
   const numGlyphs = sorted.length
   const { buffer, tables, unitsPerEm, indexToLocFormat } = font
@@ -287,9 +366,13 @@ function subsetFont(font, glyphIds) {
     const gid = sorted[i]
     const start = font.loca[gid]
     const end = font.loca[gid + 1]
-    const slice = buffer.slice(glyf.offset + start, glyf.offset + end)
+    const slice = remapCompositeGlyph(font, gid, buffer.slice(glyf.offset + start, glyf.offset + end), map)
     glyphData.push(slice)
     cursor += slice.length
+    if (cursor % 2 !== 0) {
+      glyphData.push(Buffer.from([0]))
+      cursor += 1
+    }
     newLoca.push(cursor)
   }
 
@@ -316,15 +399,13 @@ function subsetFont(font, glyphIds) {
   }
 
   const cmapBytes = buildSubsetCmap(sorted, font.cmap, map)
-  const maxpBytes = []
-  writeU32(maxpBytes, 0x00010000)
-  writeU16(maxpBytes, numGlyphs)
+  const maxp = tables.get('maxp')
+  const maxpBytes = Buffer.from(buffer.slice(maxp.offset, maxp.offset + maxp.length))
+  maxpBytes.writeUInt16BE(numGlyphs, 4)
 
   const headBytes = Buffer.from(buffer.slice(tables.get('head').offset, tables.get('head').offset + 54))
   headBytes.writeUInt16BE(indexToLocFormat, 50)
   headBytes.writeUInt32BE(0, 8) // checksum reset
-  headBytes.writeUInt32BE(0, 12) // created
-  headBytes.writeUInt32BE(0, 16) // modified
 
   const hheaBytes = Buffer.from(buffer.slice(hhea.offset, hhea.offset + 36))
   hheaBytes.writeUInt16BE(numGlyphs, 34)
@@ -353,8 +434,14 @@ function subsetFont(font, glyphIds) {
   if (os2Bytes) {
     tablePayloads.set('OS/2', os2Bytes)
   }
+  for (const optionalTable of ['cvt ', 'fpgm', 'prep', 'gasp']) {
+    const source = tables.get(optionalTable)
+    if (source) {
+      tablePayloads.set(optionalTable, Buffer.from(buffer.slice(source.offset, source.offset + source.length)))
+    }
+  }
 
-  const tableOrder = ['cmap', 'glyf', 'head', 'hhea', 'hmtx', 'loca', 'maxp', 'name', 'post', 'OS/2'].filter((t) => tablePayloads.has(t))
+  const tableOrder = ['cmap', 'cvt ', 'fpgm', 'glyf', 'head', 'hhea', 'hmtx', 'loca', 'maxp', 'name', 'post', 'prep', 'gasp', 'OS/2'].filter((t) => tablePayloads.has(t))
   const numTables = tableOrder.length
   const headerSize = 12 + numTables * 16
   let tableOffset = headerSize
