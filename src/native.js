@@ -21,7 +21,11 @@ function getNativeOutputFile(repoBook, options) {
 // dependency-free generator.
 function renderNativePart(mdString, repoBook, options) {
   const outputFile = getNativeOutputFile(repoBook, options)
-  const buffer = renderMarkdownToPdf(mdString, { outline: options.outline !== false })
+  const buffer = renderMarkdownToPdf(mdString, {
+    outline: options.outline !== false,
+    footerPageNumber: options.footerPageNumber,
+    footerChapterTitle: options.footerChapterTitle,
+  })
   fs.writeFileSync(outputFile, buffer)
   return outputFile
 }

@@ -43,6 +43,16 @@ const COLORS = {
   bullet: '#24292e',
 }
 
+const FOOTER = {
+  height: 28,
+  ruleOffset: 6,
+  fontSize: 9,
+  textOffset: 8,
+  gap: 8,
+  separatorWidth: 0.5,
+  separatorHeight: 10,
+}
+
 const ASCENT = 0.78
 
 function hexToRgb(hex) {
@@ -127,6 +137,17 @@ class Layout {
     this.outline = []
     this.headingStack = [] // for nested outline building
     this.leftBar = null
+    this.footerPageNumber = !!options.footerPageNumber
+    this.footerChapterTitle = !!options.footerChapterTitle
+    this.currentChapterTitle = ''
+  }
+
+  _hasFooter() {
+    return this.footerPageNumber || this.footerChapterTitle
+  }
+
+  _contentBottom() {
+    return this._hasFooter() ? PAGE.height - MARGIN.bottom - FOOTER.height : PAGE.height - MARGIN.bottom
   }
 
   // --- low level drawing --------------------------------------------------
@@ -165,7 +186,50 @@ class Layout {
 
   // --- pagination ---------------------------------------------------------
 
+  _drawFooter() {
+    if (!this._hasFooter()) {
+      return
+    }
+
+    const footerBottom = PAGE.height - MARGIN.bottom
+    const ruleY = footerBottom - FOOTER.height + FOOTER.ruleOffset
+    this._line(MARGIN.left, ruleY, PAGE.width - MARGIN.right, ruleY, COLORS.rule, 0.75)
+
+    const baseline = footerBottom - FOOTER.textOffset
+    const showChapter = this.footerChapterTitle && this.currentChapterTitle
+    const showPage = this.footerPageNumber
+    if (!showChapter && !showPage) {
+      return
+    }
+
+    let x = PAGE.width - MARGIN.right
+
+    if (showPage) {
+      const pageText = String(this.pageIndex + 1)
+      const pageWidth = measureText(pageText, 'body', FOOTER.fontSize, this.fontManager)
+      x -= pageWidth
+      this._text(x, baseline, pageText, 'body', FOOTER.fontSize, COLORS.quoteText)
+    }
+
+    if (showChapter && showPage) {
+      x -= FOOTER.gap
+      const sepTop = baseline - FOOTER.separatorHeight / 2
+      const sepBottom = baseline + FOOTER.separatorHeight / 2
+      this._line(x, sepTop, x, sepBottom, COLORS.rule, FOOTER.separatorWidth)
+      x -= FOOTER.gap
+    }
+
+    if (showChapter) {
+      const titleWidth = measureText(this.currentChapterTitle, 'body', FOOTER.fontSize, this.fontManager)
+      x -= titleWidth
+      this._text(x, baseline, this.currentChapterTitle, 'body', FOOTER.fontSize, COLORS.quoteText)
+    }
+  }
+
   _newPage() {
+    if (this._hasFooter()) {
+      this._drawFooter()
+    }
     this.doc.addPage(this.ops.join('\n'))
     this.ops = []
     this.y = MARGIN.top
@@ -173,7 +237,7 @@ class Layout {
   }
 
   _ensure(height) {
-    if (this.y + height > PAGE.height - MARGIN.bottom) {
+    if (this.y + height > this._contentBottom()) {
       this._newPage()
       return true
     }
@@ -314,6 +378,9 @@ class Layout {
           }
 
           inToc = false
+          if (isFileHeader) {
+            this.currentChapterTitle = block.text
+          }
           this._heading(block, left, width, { outline: true })
           break
         }
@@ -403,7 +470,7 @@ class Layout {
     }
 
     for (const lineRuns of display) {
-      if (this.y + CODE_LINE > PAGE.height - MARGIN.bottom) {
+      if (this.y + CODE_LINE > this._contentBottom()) {
         finishSegment()
         this._newPage()
         segStart = this.ops.length
@@ -520,7 +587,7 @@ class Layout {
       }
       const rowHeight = maxLines * TABLE_LINE + 2 * padY
 
-      if (this.y + rowHeight > PAGE.height - MARGIN.bottom && this.y > MARGIN.top) {
+      if (this.y + rowHeight > this._contentBottom() && this.y > MARGIN.top) {
         this._newPage()
       }
 
@@ -572,6 +639,9 @@ class Layout {
   }
 
   finish(options = {}) {
+    if (this._hasFooter()) {
+      this._drawFooter()
+    }
     if (this.ops.length > 0 || this.doc.pages.length === 0) {
       this.doc.addPage(this.ops.join('\n'))
       this.ops = []

@@ -119,10 +119,40 @@ describe('syntax highlighter', () => {
 })
 
 describe('layout', () => {
+  function firstPageContent(buffer) {
+    const zlib = require('zlib')
+    const streamStart = buffer.indexOf('stream\n') + 7
+    const streamEnd = buffer.indexOf('\nendstream', streamStart)
+    return zlib.inflateSync(buffer.slice(streamStart, streamEnd)).toString('latin1')
+  }
+
   it('renders markdown to a PDF buffer with a %PDF header', () => {
     const buffer = renderMarkdownToPdf('# Heading\n\nParagraph text.', { outline: true })
     expect(buffer.slice(0, 5).toString('latin1')).toBe('%PDF-')
     expect(buffer.toString('latin1').trimEnd().endsWith('%%EOF')).toBe(true)
+  })
+
+  it('draws page numbers in the footer when enabled', () => {
+    const md = Array.from({ length: 80 }, (_, i) => `Line ${i}`).join('\n\n')
+    const buffer = renderMarkdownToPdf(md, { footerPageNumber: true })
+    const content = firstPageContent(buffer)
+    expect(content).toMatch(/\(1\) Tj/)
+  })
+
+  it('draws chapter titles in the footer when enabled', () => {
+    const md = '#### src/example.js \n[to top](#Contents)\n\n```js\nconst x = 1\n```'
+    const buffer = renderMarkdownToPdf(md, { footerChapterTitle: true })
+    const content = firstPageContent(buffer)
+    expect(content).toContain('src/example.js')
+  })
+
+  it('draws chapter title and page number with a separator when both are enabled', () => {
+    const md = '#### src/example.js \n[to top](#Contents)\n\n```js\nconst x = 1\n```'
+    const buffer = renderMarkdownToPdf(md, { footerPageNumber: true, footerChapterTitle: true })
+    const content = firstPageContent(buffer)
+    expect(content).toContain('src/example.js')
+    expect(content).toMatch(/\(1\) Tj/)
+    expect(content).toMatch(/\d+(?:\.\d+)? w[\s\S]* RG[\s\S]* l S/)
   })
 
   it('embeds CJK and Unicode text with Identity-H fonts', () => {
